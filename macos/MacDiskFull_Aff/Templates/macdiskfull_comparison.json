@@ -1,0 +1,164 @@
+{
+    "version": 1,
+    "metadata": {
+        "templateId": "macdiskfull-comparison",
+        "templateName": "MacDiskFull Comparison",
+        "templateVersion": "1.0.0",
+        "description": "4-product Mac disk cleaner comparison site with GetDiskSpace as featured pick",
+        "createdAt": "2026-01-18T00:00:00Z"
+    },
+    "site": {
+        "name": "MacDiskFull.com",
+        "taglineVariants": [
+            "Is your Mac startup disk almost full?",
+            "Running low on Mac storage space?",
+            "Your Mac says it's out of space. Now what?",
+            "Tired of that 'Disk Almost Full' warning?",
+            "Clear Mac clutter in minutes, not hours",
+            "Mac storage full? Here's what actually works",
+            "Stop deleting apps. Start cleaning smart.",
+            "Free up gigabytes of Mac space today",
+            "The honest guide to Mac disk cleaners",
+            "Tested: What really works to free Mac space"
+        ],
+        "domain": "macdiskfull.com",
+        "theme": {
+            "primaryColor": "#A855F7"
+        },
+        "affiliateSettings": {
+            "defaultAffiliateDisclosure": "Affiliate Disclosure: We may earn a commission when you buy through links on our site. This helps support our work and does not affect our reviews or recommendations."
+        },
+        "products": [
+            {
+                "name": "GetDiskSpace",
+                "shortDescriptionVariants": [
+                    "Privacy-first Mac disk cleaner with innovative SpaceSwipe cleanup",
+                    "The Mac cleaner that respects your privacy and makes cleanup fun",
+                    "One-time purchase disk cleaner with gamified SpaceSwipe feature",
+                    "Native Apple Silicon cleaner that never phones home",
+                    "Clean your Mac your way with swipe-based file decisions"
+                ],
+                "price": "$19.99",
+                "rating": 4.9,
+                "canonicalUrl": "https://getdiskspace.com",
+                "affiliateProgramKey": "getdiskspace",
+                "productType": "ownProduct",
+                "isRecommended": true,
+                "pros": [
+                    "One-time purchase (no subscription)",
+                    "100% private - data stays on your Mac",
+                    "SpaceSwipe makes cleanup fun",
+                    "Native Apple Silicon support",
+                    "LostNeedle finds forgotten large files"
+                ],
+                "cons": [
+                    "No free version available"
+                ],
+                "sortOrder": 1
+            },
+            {
+                "name": "CleanMyMac X",
+                "shortDescriptionVariants": [
+                    "Popular all-in-one Mac maintenance tool from MacPaw",
+                    "Well-known Mac cleaner with subscription pricing",
+                    "Feature-rich but expensive over time"
+                ],
+                "price": "$89/year",
+                "rating": 4.5,
+                "canonicalUrl": "https://macpaw.com/cleanmymac",
+                "affiliateProgramKey": "cleanmymac",
+                "productType": "otherAffiliate",
+                "isRecommended": false,
+                "pros": [
+                    "Well-known brand",
+                    "Many features",
+                    "Good user interface"
+                ],
+                "cons": [
+                    "Requires yearly subscription",
+                    "Expensive over time ($89+/year)",
+                    "Sends usage data to servers"
+                ],
+                "sortOrder": 2
+            },
+            {
+                "name": "DaisyDisk",
+                "shortDescriptionVariants": [
+                    "Visual disk analyzer with beautiful sunburst visualization",
+                    "See what's taking up space with stunning graphics",
+                    "Affordable one-time purchase for disk visualization"
+                ],
+                "price": "$9.99",
+                "rating": 4.3,
+                "canonicalUrl": "https://daisydiskapp.com",
+                "affiliateProgramKey": "daisydisk",
+                "productType": "otherAffiliate",
+                "isRecommended": false,
+                "pros": [
+                    "Affordable one-time price",
+                    "Beautiful visualization",
+                    "Quick disk scanning"
+                ],
+                "cons": [
+                    "Only shows disk usage",
+                    "No automatic cleanup",
+                    "Limited feature set"
+                ],
+                "sortOrder": 3
+            },
+            {
+                "name": "OmniDiskSweeper",
+                "shortDescriptionVariants": [
+                    "Free, simple disk analyzer from The Omni Group",
+                    "Basic but free tool from trusted developers",
+                    "No frills disk space analyzer"
+                ],
+                "price": "Free",
+                "rating": 3.8,
+                "canonicalUrl": "https://www.omnigroup.com/more",
+                "affiliateProgramKey": "",
+                "productType": "competitor",
+                "isRecommended": false,
+                "pros": [
+                    "Completely free",
+                    "Simple interface",
+                    "Trusted developer"
+                ],
+                "cons": [
+                    "Very basic features",
+                    "Outdated interface",
+                    "No cleanup automation"
+                ],
+                "sortOrder": 4
+            }
+        ]
+    },
+    "affiliateProviders": {
+        "activeProvider": "lemonsqueezy",
+        "providers": {
+            "lemonsqueezy": {
+                "type": "query_param",
+                "paramName": "aff",
+                "utm": {
+                    "enabled": true,
+                    "source": "affiliate",
+                    "medium": "referral"
+                }
+            }
+        },
+        "programs": {
+            "getdiskspace": {
+                "provider": "lemonsqueezy",
+                "enabledByDefault": true
+            },
+            "cleanmymac": {
+                "provider": "direct",
+                "enabledByDefault": false
+            },
+            "daisydisk": {
+                "provider": "direct",
+                "enabledByDefault": false
+            }
+        }
+    }
+}
