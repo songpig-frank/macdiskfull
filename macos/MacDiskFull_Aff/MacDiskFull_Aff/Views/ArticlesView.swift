@@ -82,30 +82,45 @@ struct ArticleEditorView: View {
     @Binding var article: Article
     
     var body: some View {
-        Form {
-            Section(header: Text("Metadata")) {
-                TextField("Title", text: $article.title)
-                TextField("Slug (URL)", text: $article.slug)
-                TextField("Author", text: $article.author)
+        VStack(spacing: 16) {
+            GroupBox(label: Text("Metadata")) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Title:")
+                            .frame(width: 60, alignment: .trailing)
+                        TextField("Title", text: $article.title)
+                    }
+                    HStack {
+                        Text("Slug:")
+                            .frame(width: 60, alignment: .trailing)
+                        TextField("Slug (URL)", text: $article.slug)
+                    }
+                    HStack {
+                        Text("Author:")
+                            .frame(width: 60, alignment: .trailing)
+                        TextField("Author", text: $article.author)
+                    }
+                    HStack(alignment: .top) {
+                         Text("Summary:")
+                            .frame(width: 60, alignment: .trailing)
+                        TextEditor(text: $article.summary)
+                            .frame(height: 60)
+                            .border(Color.gray.opacity(0.2))
+                    }
+                }
+                .padding()
             }
             
-            Section(header: Text("SEO Summary")) {
-                TextEditor(text: $article.summary)
-                    .frame(height: 80)
-            }
-            
-            Section(header: Text("Content (HTML)")) {
+            GroupBox(label: Text("Content (HTML)")) {
                 TextEditor(text: $article.contentHTML)
                     .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 400)
+                    .disableAutocorrection(true)
+                    .padding(4)
             }
             
-            Section(header: Text("Preview")) {
-                // Formatting tips
-                Text("Use <h3> for headings, <p> for paragraphs.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            Text("Tip: Use <h3> for headings, <p> for paragraphs.")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .padding()
         .navigationTitle("Edit Article")

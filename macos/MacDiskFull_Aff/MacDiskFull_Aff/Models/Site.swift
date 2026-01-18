@@ -227,7 +227,7 @@ extension Site {
                 <p>We tested the top external storage solutions that take advantage of the M4's Thunderbolt 4 / USB 4 ports.</p>
 
                 <h2>1. The "Speed King" DIY Method (Recommended)</h2>
-                <p><strong>The Setup:</strong> <a href="https://amazon.com/dp/B08V83JZH4">Acasis 40Gbps NVMe Enclosure</a> + <a href="https://amazon.com/dp/B08GLX7TNT">Samsung 980 PRO 2TB</a>.</p>
+                <p><strong>The Setup:</strong> <a href="https://www.acasis.com/">Acasis 40Gbps NVMe Enclosure</a> + <a href="https://amazon.com/dp/B08GLX7TNT">Samsung 980 PRO 2TB</a>.</p>
                 <ul>
                 <li><strong>Real World Speed:</strong> ~2,800 MB/s Read/Write.</li>
                 <li><strong>Cost vs Apple:</strong> ~50% Cheaper for 2TB.</li>
