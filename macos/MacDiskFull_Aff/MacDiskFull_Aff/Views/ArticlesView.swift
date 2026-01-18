@@ -11,6 +11,7 @@ import SwiftUI
 struct ArticlesView: View {
     @Binding var site: Site
     @State private var editingArticleId: UUID?
+    @State private var showAIWriter: Bool = false
     
     var body: some View {
         List {
@@ -46,6 +47,19 @@ struct ArticlesView: View {
                     site.articles = sample.articles
                 }
                 .help("Reloads the high-quality default articles")
+            }
+            ToolbarItem(placement: .automatic) {
+                Button(action: { showAIWriter = true }) {
+                    Label("AI Writer", systemImage: "sparkles")
+                }
+                .help("Generate new articles from YouTube")
+            }
+        }
+        .sheet(isPresented: $showAIWriter) {
+            AIGeneratorView(site: $site) { newArticle in
+                site.articles.append(newArticle)
+                // editingArticleId = newArticle.id // Cannot open two sheets at once on macOS easily if nested
+                // Just close AI sheet, user sees new article.
             }
         }
         .sheet(item: Binding(

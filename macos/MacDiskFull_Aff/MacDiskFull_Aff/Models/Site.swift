@@ -100,6 +100,7 @@ struct Site: Identifiable, Codable {
     // Pro Features
     var usePrettyLinks: Bool
     var generateLegalPages: Bool
+    var openAIKey: String = "" // For AI features
     
     var createdAt: Date
     var updatedAt: Date
@@ -115,6 +116,7 @@ struct Site: Identifiable, Codable {
         articles: [Article] = [],
         usePrettyLinks: Bool = true,
         generateLegalPages: Bool = true,
+        openAIKey: String = "",
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -128,6 +130,7 @@ struct Site: Identifiable, Codable {
         self.articles = articles
         self.usePrettyLinks = usePrettyLinks
         self.generateLegalPages = generateLegalPages
+        self.openAIKey = openAIKey
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
