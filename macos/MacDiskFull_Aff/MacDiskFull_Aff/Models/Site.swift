@@ -208,6 +208,15 @@ extension Site {
                 <li><strong>Basic App Suite (Office, Creative Cloud, Xcode):</strong> ~40GB</li>
                 </ul>
                 <p>Before you even save a single personal photo or 4K video project, you are down to less than 100GB of usable space.</p>
+                <h3>The "Modular" Mirage</h3>
+                <p>When the M4 Mac Mini launched, teardowns revealed a surprise: <strong>The storage is not soldered.</strong> It sits on a removable proprietary module, similar to the Mac Studio.</p>
+                <p>So, can you just buy a 2TB stick and upgrade? <strong>No.</strong></p>
+                <p>Apple's storage controller is built into the M4 chip, not the drive. The module is just raw NAND flash. This means:</p>
+                <ul>
+                <li><strong>No Third-Party Drives:</strong> You cannot use standard NVMe SSDs (Samsung, WD, etc).</li>
+                <li><strong>Serialization Lock:</strong> Swapping modules requires a "DFU Restore" using a second Mac to pair the new NAND to the M4 chip.</li>
+                <li><strong>Scarcity:</strong> Apple does not sell these modules. You can only get them from other Mac Minis or the grey market.</li>
+                </ul>
                 <h3>The "Swap" Penalty</h3>
                 <p>The real danger isn't just running out of space—it is performance degradation. When your Unified Memory fills up, macOS writes to the SSD (Swap). If your SSD is near capacity, this process slows to a crawl, and—worse—it drastically reduces the lifespan of the soldered NAND chips.</p>
                 <blockquote>"Buying the base storage model is borrowing time against your SSD's longevity." — Tech Analysis</blockquote>
@@ -284,20 +293,20 @@ extension Site {
                 contentHTML: """
                 <p>The "Right to Repair" movement has made strides, but the Mac Mini M4 remains a fortress. Can you upgrade the internal storage? The short answer is <strong>No</strong>. The long answer is <strong>"Yes, but you will regret it."</strong></p>
 
-                <h3>The Soldered Architecture</h3>
-                <p>Apple uses proprietary NAND chips soldered directly to the logic board in a BGA (Ball Grid Array) configuration. There is no M.2 slot. There is no SATA port.</p>
+                <h3>The Proprietary Modular Architecture</h3>
+                <p>Unlike the M1/M2 Mac Minis which had soldered storage, the M4 uses a <strong>removable storage daughterboard</strong>. This has led many to ask: "Can I swap it?"</p>
 
-                <h3>The "Dosdude" Method</h3>
-                <p>Extremely skilled technicians (like YouTube's specialized repair channels) can theoretically:</p>
+                <h3>The "Swap" Process (It's Complicated)</h3>
+                <p>Upgrading isn't as simple as plugging in a drive. The process requires:</p>
                 <ol>
-                <li>Desolder the existing chips using a hot air rework station (400°C+).</li>
-                <li>Re-ball larger capacity NAND chips.</li>
-                <li>Solder them onto the board.</li>
-                <li><strong>Use Apple Configurator 2</strong> to put the Mac into DFU (Device Firmware Update) mode and restore the OS.</li>
+                <li><strong>Sourcing a Module:</strong> Since Apple doesn't sell them, you rely on salvaged parts or expensive aftermarket "blanks" that require programming.</li>
+                <li><strong>Physical Install:</strong> Opening the chassis (which is easier on M4 than M2).</li>
+                <li><strong>DFU Restore:</strong> The critical step. You absolutely <strong>MUST</strong> have a second Mac running Apple Configurator. You connect the M4 Mini via USB-C, put it in DFU mode, and "Revive/Restore" the firmware.</li>
                 </ol>
 
                 <h3>Why this fails for 99% of Users</h3>
-                <p>Even if you have the soldering skills, the <strong>Software Lock</strong> is the hurdle. The M4 Secure Enclave requires specific pairing serialization. If the firmware detects mismatched configurations without a valid DFU restore certificate (which often requires authorized accounts), the Mac becomes a brick.</p>
+                <p>If you don't have a second Mac, you are stuck. If the DFU restore fails (common with mismatched NAND), you have a brick. And most importantly: <strong>It wipes all data.</strong> You cannot upgrade without erasing everything.</p>
+                <p>Compared to this headache, a fast Thunderbolt drive is a dream.</p>
 
                 <h3>The Better Way: Permanent External Boot</h3>
                 <p>Instead of risking a $600+ machine, you can simply velcro a small NVMe drive to the back of the Mini.</p>
