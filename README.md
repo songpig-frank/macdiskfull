@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MacDiskFull.com Builder
 
-## Getting Started
+A standalone desktop application for managing the **MacDiskFull.com** affiliate comparison website. Compare Mac disk cleaning software and generate leads for GetDiskSpace and other products.
 
-First, run the development server:
+## 🖥️ System Requirements
 
+- **macOS 12.0 (Monterey)** or later
+- Works on both **Intel (x64)** and **Apple Silicon (arm64)** Macs
+- *Windows support planned for future release*
+
+## 📦 Download
+
+Two DMG files are generated for maximum compatibility:
+
+| File | For |
+|------|-----|
+| `MacDiskFull Builder-1.0.0.dmg` | Intel Macs (x64) |
+| `MacDiskFull Builder-1.0.0-arm64.dmg` | Apple Silicon Macs (M1/M2/M3) |
+
+## 🚀 Features
+
+- **Comparison Engine**: Side-by-side comparison of Mac disk cleaners
+- **Affiliate Ready**: Pre-configured affiliate links and tracking
+- **SEO Optimized**: Built-in meta tags, semantic HTML, and fast loading
+- **Premium Design**: Dark mode, glassmorphism, modern animations
+
+## 🛠️ Development
+
+### Prerequisites
+- Node.js 18+ 
+- npm
+
+### Run Development Server
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # Web dev server at http://localhost:3000
+npm run electron:dev # Desktop app with hot reload
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Build DMGs
+```bash
+npm run electron:build  # Builds both Intel and ARM64 DMGs
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Individual architecture builds:
+```bash
+npm run electron:build:intel  # Intel only
+npm run electron:build:arm    # Apple Silicon only
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Build for Windows (Future)
+```bash
+npm run electron:build:win  # Creates NSIS installer
+```
 
-## Learn More
+## 📁 Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+├── electron/           # Electron main process
+├── src/
+│   ├── app/           # Next.js pages
+│   ├── components/    # React components
+│   └── data/          # Product data (edit products.ts)
+├── dist/              # Built DMGs output
+└── out/               # Static site export
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📝 Editing Content
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Edit `src/data/products.ts` to add/modify products in the comparison table.
 
-## Deploy on Vercel
+## 📜 License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Proprietary - MacDiskFull.com
