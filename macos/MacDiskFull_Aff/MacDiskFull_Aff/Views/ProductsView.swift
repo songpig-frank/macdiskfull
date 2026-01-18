@@ -168,6 +168,12 @@ struct ProductEditorView: View {
     let onDelete: () -> Void
     @State private var showDeleteConfirm = false
     
+    var allNetworkNames: [String] {
+        let standard = AffiliateNetwork.allCases.map { $0.rawValue }
+        let enabled = Array(settings.globalAffiliateIds.keys)
+        return Array(Set(standard + enabled)).sorted()
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -247,11 +253,11 @@ struct ProductEditorView: View {
                                 .frame(width: 80, alignment: .leading)
                             
                             Picker("", selection: Binding(
-                                get: { AffiliateNetwork(rawValue: product.affiliateNetworkId ?? "") ?? .custom },
-                                set: { product.affiliateNetworkId = $0.rawValue }
+                                get: { product.affiliateNetworkId ?? "Custom Link" },
+                                set: { product.affiliateNetworkId = $0 }
                             )) {
-                                ForEach(AffiliateNetwork.allCases) { network in
-                                    Text(network.rawValue).tag(network)
+                                ForEach(allNetworkNames, id: \.self) { name in
+                                    Text(name).tag(name)
                                 }
                             }
                             .labelsHidden()
