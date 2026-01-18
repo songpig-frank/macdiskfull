@@ -1348,8 +1348,8 @@ extension SiteGeneratorSync {
             return product.affiliateLink
         }
         
-        // Return pretty path
-        return "go/\(slug)/"
+        // Return pretty path (with index.html for local file testing)
+        return "go/\(slug)/index.html"
     }
     
     func generateGeniusLinkScript() -> String {

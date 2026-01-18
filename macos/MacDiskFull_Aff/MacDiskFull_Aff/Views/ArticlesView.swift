@@ -10,11 +10,12 @@ import SwiftUI
 
 struct ArticlesView: View {
     @Binding var site: Site
+    @State private var editingArticleId: UUID?
     
     var body: some View {
         List {
-            ForEach($site.articles) { $article in
-                NavigationLink(destination: ArticleEditorView(article: $article)) {
+            ForEach(site.articles) { article in
+                Button(action: { editingArticleId = article.id }) {
                     VStack(alignment: .leading) {
                         Text(article.title)
                             .font(.headline)
@@ -24,6 +25,7 @@ struct ArticlesView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .buttonStyle(PlainButtonStyle())
             }
             .onDelete(perform: delete)
         }
@@ -36,6 +38,22 @@ struct ArticlesView: View {
                 }
             }
         }
+        .sheet(item: Binding(
+            get: { editingArticleId.map { WrappedUUID(uuid: $0) } },
+            set: { editingArticleId = $0?.uuid }
+        )) { wrappedId in
+            if let index = site.articles.firstIndex(where: { $0.id == wrappedId.uuid }) {
+                NavigationView {
+                    ArticleEditorView(article: $site.articles[index])
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { editingArticleId = nil }
+                            }
+                        }
+                }
+                .frame(width: 800, height: 600)
+            }
+        }
     }
     
     func delete(at offsets: IndexSet) {
@@ -45,12 +63,19 @@ struct ArticlesView: View {
     func addArticle() {
         let newArticle = Article(
             title: "New Post",
-            slug: "new-post-\(Date().timeIntervalSince1970)",
-            summary: "Short summary here...",
-            contentHTML: "<p>Start writing your content...</p>"
+            slug: "new-post-\(Int(Date().timeIntervalSince1970))",
+            summary: "Short summary...",
+            contentHTML: "<p>Content</p>"
         )
         site.articles.append(newArticle)
+        editingArticleId = newArticle.id // Auto-open
     }
+}
+
+// UUID wrapper for Sheet .item
+struct WrappedUUID: Identifiable {
+    let uuid: UUID
+    var id: UUID { uuid }
 }
 
 struct ArticleEditorView: View {
