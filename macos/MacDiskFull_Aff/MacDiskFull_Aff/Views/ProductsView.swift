@@ -264,8 +264,8 @@ struct ProductEditorView: View {
                         }
                         
                         if let networkId = product.affiliateNetworkId,
-                           let network = AffiliateNetwork(rawValue: networkId),
-                           network != .custom {
+                           !networkId.isEmpty,
+                           networkId != "Custom Link" {
                             
                             // Builder Fields
                             HStack {
@@ -274,7 +274,7 @@ struct ProductEditorView: View {
                                     .foregroundColor(.secondary)
                                     .frame(width: 80, alignment: .leading)
                                 
-                                TextField(AffiliateLinkBuilder.placeholder(for: network), text: Binding(
+                                TextField(AffiliateLinkBuilder.placeholder(for: networkId), text: Binding(
                                     get: { product.externalId ?? "" },
                                     set: { product.externalId = $0 }
                                 ))
@@ -299,9 +299,9 @@ struct ProductEditorView: View {
                                 Spacer()
                                 Button(action: {
                                     let link = AffiliateLinkBuilder.buildLink(
-                                        network: network,
+                                        networkName: networkId,
                                         productId: product.externalId ?? "",
-                                        affiliateId: settings.globalAffiliateIds[network.rawValue] ?? "",
+                                        affiliateId: settings.globalAffiliateIds[networkId] ?? "",
                                         campaign: product.campaignOverride ?? ""
                                     )
                                     product.affiliateLink = link
