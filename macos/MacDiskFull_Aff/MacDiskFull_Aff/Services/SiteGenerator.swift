@@ -46,6 +46,10 @@ class SiteGeneratorSync {
         try generatePrettyLinks(to: outputDir) // Pro Feature
         try generateLegalPages(to: outputDir)  // Pro Feature
         
+        // Multi-Page Content
+        try generateArticles(to: outputDir)
+        try generateStaticPages(to: outputDir)
+        
         return outputDir
     }
     
@@ -66,6 +70,10 @@ class SiteGeneratorSync {
         try generateAssetPlaceholders(to: assetsDir)
         try generatePrettyLinks(to: outputDir) // Pro Feature
         try generateLegalPages(to: outputDir)  // Pro Feature
+        
+        // Multi-Page Content
+        try generateArticles(to: outputDir)
+        try generateStaticPages(to: outputDir)
     }
     
     // MARK: - SEO Files
@@ -727,6 +735,146 @@ class SiteGeneratorSync {
             .affiliate-disclosure {
                 font-size: 0.6rem;
                 padding: 0.6rem;
+            }
+        }
+        
+        /* ========== ARTICLES & PAGES ========== */
+        
+        .page-content {
+            padding: 4rem 0;
+            min-height: 60vh;
+            max-width: 800px; /* Readability */
+            margin: 0 auto;
+        }
+        
+        .article-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .article-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        
+        .article-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+        
+        .article-content {
+            padding: 1.5rem;
+        }
+        
+        .article-content h3 {
+            margin-top: 0;
+            font-size: 1.25rem;
+        }
+        
+        .article-content h3 a {
+            color: var(--text);
+            text-decoration: none;
+        }
+        
+        .article-content .meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+        
+        .read-more {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        
+        /* Single Article Typography */
+        .prose {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: #d1d5db;
+        }
+        
+        .prose h1 { margin-bottom: 0.5rem; font-size: 2.5rem; color: #fff; }
+        .prose h2 { margin-top: 2.5rem; margin-bottom: 1rem; font-size: 1.8rem; color: #fff; }
+        .prose h3 { margin-top: 2rem; margin-bottom: 0.8rem; font-size: 1.5rem; color: #fff; }
+        .prose p { margin-bottom: 1.5rem; }
+        .prose ul, .prose ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+        .prose li { margin-bottom: 0.5rem; }
+        .prose a { color: var(--primary); text-decoration: underline; }
+        
+        .article-header {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 2rem;
+        }
+        
+        .article-meta {
+            color: var(--text-muted);
+        }
+        
+        /* Shared Header Nav */
+        .desktop-nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .desktop-nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .desktop-nav a:hover, .desktop-nav a.active {
+            color: #fff;
+        }
+        
+        .contact-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        
+        .footer-grid ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .footer-grid li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer-grid a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+        
+        .footer-grid a:hover {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .footer-grid {
+                 grid-template-columns: 1fr;
+                 text-align: center;
             }
         }
         """
