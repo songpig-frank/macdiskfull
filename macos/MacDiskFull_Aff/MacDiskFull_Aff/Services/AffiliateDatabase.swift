@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import Combine
+import SwiftUI
 
 class AffiliateDatabase: ObservableObject {
     static let shared = AffiliateDatabase()
