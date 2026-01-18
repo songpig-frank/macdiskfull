@@ -29,10 +29,8 @@ struct AffiliateNetworkListView: View {
                 
                 List(selection: $selectedCategory) {
                     ForEach(ProgramCategory.allCases, id: \.self) { category in
-                        NavigationLink(destination: EmptyView()) { // Hack for selection style
-                            Label(category.rawValue, systemImage: icon(for: category))
-                        }
-                        .tag(category)
+                        Label(category.rawValue, systemImage: icon(for: category))
+                            .tag(category)
                     }
                 }
                 .listStyle(SidebarListStyle())
