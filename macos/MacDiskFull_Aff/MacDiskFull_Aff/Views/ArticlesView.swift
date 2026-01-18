@@ -34,25 +34,23 @@ struct ArticlesView: View {
         .navigationTitle("Articles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(action: addArticle) {
-                    Label("Add Article", systemImage: "plus")
+                HStack {
+                    Button(action: { showAIWriter = true }) {
+                        Label("AI Writer", systemImage: "sparkles")
+                    }
+                    .help("Generate new articles from YouTube")
+                    
+                    Button(action: addArticle) {
+                        Label("Add Article", systemImage: "plus")
+                    }
                 }
             }
-            ToolbarItem(placement: .automatic) {
-                Button("Restore Defaults") {
+            ToolbarItem(placement: .confirmationAction) { // Use explicit placement for Restore
+                 Button("Restore Defaults") {
                     // Reset to the beefed up seeded content
-                    site.articles = Site(name: "", tagline: "", domain: "", affiliateSettings: AffiliateSettings(), products: []).articles // Accessing default or sample
-                    // Ideally use static sample
-                    let sample = Site.sampleMacDiskFull
-                    site.articles = sample.articles
+                    site.articles = Site.sampleMacDiskFull.articles
                 }
                 .help("Reloads the high-quality default articles")
-            }
-            ToolbarItem(placement: .automatic) {
-                Button(action: { showAIWriter = true }) {
-                    Label("AI Writer", systemImage: "sparkles")
-                }
-                .help("Generate new articles from YouTube")
             }
         }
         .sheet(isPresented: $showAIWriter) {
