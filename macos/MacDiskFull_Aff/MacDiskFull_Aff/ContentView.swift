@@ -22,6 +22,7 @@ struct ContentView: View {
     enum SidebarSection: String, CaseIterable, Hashable {
         case siteSettings = "Site Settings"
         case products = "Products"
+        case articles = "Articles"
         case preview = "Preview"
         case generate = "Generate"
     }
@@ -65,6 +66,9 @@ struct ContentView: View {
                     Label("Products", systemImage: "cube.box")
                         .tag(SidebarSection.products)
                     
+                    Label("Articles", systemImage: "doc.text")
+                        .tag(SidebarSection.articles)
+                    
                     Label("Preview", systemImage: "eye")
                         .tag(SidebarSection.preview)
                     
@@ -102,6 +106,8 @@ struct ContentView: View {
             ), showAffiliateManager: $showAffiliateManager, onSave: store.save, onReset: store.resetToSample)
         case .products:
             ProductsView(store: store)
+        case .articles:
+            ArticlesView(site: $store.site)
         case .preview:
             PreviewView(store: store)
         case .generate:

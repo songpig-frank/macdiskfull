@@ -924,15 +924,7 @@ class SiteGeneratorSync {
             \(generateGeniusLinkScript())
         </head>
         <body>
-            <!-- Header -->
-            <header>
-                <div class="container">
-                    <a href="index.html" class="logo">
-                        \(formatLogo(site.name))
-                    </a>
-                    <a href="#comparison" class="nav-cta">Compare Now</a>
-                </div>
-            </header>
+            \(generateSharedHeader(activePage: "home"))
             
             <!-- Hero -->
             <section class="hero">
@@ -966,25 +958,28 @@ class SiteGeneratorSync {
                 </div>
             </section>
             
-            <!-- Footer -->
-            <footer>
-                <div class="container">
-                    <div class="footer-content">
-                        <div class="footer-brand">
-                            <h3>\(escapeHTML(site.name))</h3>
-                            <p>\(escapeHTML(site.tagline))</p>
+            <!-- Latest Articles -->
+            <section class="latest-articles container" style="padding: 4rem 1rem;">
+                <h2 style="text-align: center; margin-bottom: 2rem; font-size: 2rem;">Latest News</h2>
+                <div class="article-grid">
+                    \(site.articles.prefix(3).map { article in
+                        """
+                        <div class="article-card">
+                            <div class="article-content">
+                                <h3><a href="articles/\(article.slug).html">\(escapeHTML(article.title))</a></h3>
+                                <p style="font-size: 0.9rem; color: var(--text-muted);">\(escapeHTML(article.summary))</p>
+                                <a href="articles/\(article.slug).html" class="read-more">Read →</a>
+                            </div>
                         </div>
-                        
-                        <div class="affiliate-disclosure">
-                            <strong>Affiliate Disclosure:</strong> \(escapeHTML(site.affiliateSettings.defaultAffiliateDisclosure))
-                        </div>
-                        
-                        <div class="footer-bottom">
-                            <p>© \(Calendar.current.component(.year, from: Date())) \(escapeHTML(site.name)). All rights reserved.</p>
-                        </div>
-                    </div>
+                        """
+                    }.joined(separator: "\n"))
                 </div>
-            </footer>
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="articles.html" class="btn btn-secondary">View All Articles</a>
+                </div>
+            </section>
+            
+            \(generateSharedFooter())
             
             <!-- WebMakr Watermark (remove in paid version) -->
             <div class="watermark">Built with WebMakr</div>
@@ -998,7 +993,7 @@ class SiteGeneratorSync {
     
     // MARK: - Helper Methods
     
-    private func escapeHTML(_ string: String) -> String {
+    func escapeHTML(_ string: String) -> String {
         return string
             .replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")
@@ -1011,7 +1006,7 @@ class SiteGeneratorSync {
         return "<link rel=\"canonical\" href=\"https://\(site.domain)/\">"
     }
     
-    private func formatLogo(_ name: String) -> String {
+    func formatLogo(_ name: String) -> String {
         if name.lowercased().contains(".com") {
             let parts = name.components(separatedBy: ".")
             if parts.count >= 2 {
@@ -1021,7 +1016,7 @@ class SiteGeneratorSync {
         return escapeHTML(name)
     }
     
-    private func formatHeadline(_ tagline: String) -> String {
+    func formatHeadline(_ tagline: String) -> String {
         // Add gradient effect to question marks or last word
         if tagline.contains("?") {
             let parts = tagline.components(separatedBy: "?")
