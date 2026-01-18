@@ -53,15 +53,9 @@ struct ArticlesView: View {
             set: { editingArticleId = $0?.uuid }
         )) { wrappedId in
             if let index = site.articles.firstIndex(where: { $0.id == wrappedId.uuid }) {
-                NavigationView {
-                    ArticleEditorView(article: $site.articles[index])
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") { editingArticleId = nil }
-                            }
-                        }
+                ArticleEditorView(article: $site.articles[index]) {
+                    editingArticleId = nil
                 }
-                .navigationViewStyle(StackNavigationViewStyle()) // Fix layout squeeze
                 .frame(minWidth: 1000, minHeight: 800)
             }
         }
@@ -91,10 +85,25 @@ struct WrappedUUID: Identifiable {
 
 struct ArticleEditorView: View {
     @Binding var article: Article
+    var onClose: () -> Void
     @State private var selectedTab: Int = 0
     
     var body: some View {
         VStack(spacing: 0) {
+            
+            // Custom Header
+            HStack {
+                Text(selectedTab == 0 ? "Edit Article" : "Preview")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                Spacer()
+                Button("Done") {
+                    onClose()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
             
             Picker("", selection: $selectedTab) {
                 Text("Edit Source").tag(0)
@@ -154,7 +163,7 @@ struct ArticleEditorView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle(selectedTab == 0 ? "Edit Article" : "Preview")
+        // Removed navigationTitle modifier as we have a custom header
     }
     
     func generatePreviewHTML(_ article: Article) -> String {
