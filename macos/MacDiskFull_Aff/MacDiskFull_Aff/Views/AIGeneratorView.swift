@@ -30,9 +30,31 @@ struct AIGeneratorView: View {
             
             Form {
                 Section(header: Text("Configuration")) {
-                    SecureField("OpenAI API Key (Required)", text: $site.openAIKey)
+                    SecureField("API Key (Required)", text: $site.openAIKey)
                     if site.openAIKey.isEmpty {
-                        Text("Get a key from platform.openai.com").font(.caption).foregroundColor(.red)
+                        Text("Get a key from platform.openai.com or openrouter.ai").font(.caption).foregroundColor(.red)
+                    }
+                    
+                    Picker("Provider", selection: $site.aiProvider) {
+                        Text("OpenAI").tag("OpenAI")
+                        Text("OpenRouter").tag("OpenRouter")
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                    if site.aiProvider == "OpenAI" {
+                        Picker("Model", selection: $site.aiModel) {
+                            Text("GPT-4o").tag("gpt-4o")
+                            Text("GPT-4 Turbo").tag("gpt-4-turbo")
+                            Text("GPT-3.5 Turbo").tag("gpt-3.5-turbo")
+                        }
+                    } else {
+                        Picker("Model", selection: $site.aiModel) {
+                            Text("Claude 3.5 Sonnet").tag("anthropic/claude-3.5-sonnet")
+                            Text("GPT-4o (via OR)").tag("openai/gpt-4o")
+                            Text("Llama 3 70B").tag("meta-llama/llama-3-70b-instruct")
+                            Text("Mixtral 8x22B").tag("mistralai/mixtral-8x22b")
+                            Text("Gemini Pro 1.5").tag("google/gemini-pro-1.5")
+                        }
                     }
                 }
                 
@@ -90,7 +112,7 @@ struct AIGeneratorView: View {
             }
             .padding()
         }
-        .frame(width: 500, height: 750)
+        .frame(width: 500, height: 800)
     }
     
     func fetchInfo() {
@@ -120,7 +142,13 @@ struct AIGeneratorView: View {
             url: urlString
         )
         
-        AIContentService.shared.generateArticle(transcript: transcript, metadata: meta, apiKey: site.openAIKey) { result in
+        AIContentService.shared.generateArticle(
+            transcript: transcript,
+            metadata: meta,
+            apiKey: site.openAIKey,
+            provider: site.aiProvider,
+            model: site.aiModel
+        ) { result in
             DispatchQueue.main.async {
                 isGenerating = false
                 switch result {

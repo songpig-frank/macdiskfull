@@ -100,7 +100,9 @@ struct Site: Identifiable, Codable {
     // Pro Features
     var usePrettyLinks: Bool
     var generateLegalPages: Bool
-    var openAIKey: String = "" // For AI features
+    var openAIKey: String = "" // Used for both OpenAI and OpenRouter
+    var aiProvider: String = "OpenAI" // "OpenAI" or "OpenRouter"
+    var aiModel: String = "gpt-4o"
     
     var createdAt: Date
     var updatedAt: Date
@@ -117,6 +119,8 @@ struct Site: Identifiable, Codable {
         usePrettyLinks: Bool = true,
         generateLegalPages: Bool = true,
         openAIKey: String = "",
+        aiProvider: String = "OpenAI",
+        aiModel: String = "gpt-4o",
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -131,6 +135,8 @@ struct Site: Identifiable, Codable {
         self.usePrettyLinks = usePrettyLinks
         self.generateLegalPages = generateLegalPages
         self.openAIKey = openAIKey
+        self.aiProvider = aiProvider
+        self.aiModel = aiModel
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
