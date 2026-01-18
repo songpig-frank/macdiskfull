@@ -61,6 +61,7 @@ struct ArticlesView: View {
                             }
                         }
                 }
+                .navigationViewStyle(StackNavigationViewStyle()) // Fix layout squeeze
                 .frame(minWidth: 1000, minHeight: 800)
             }
         }
