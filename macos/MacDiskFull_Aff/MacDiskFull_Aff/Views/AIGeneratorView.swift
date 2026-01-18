@@ -101,11 +101,14 @@ struct AIGeneratorView: View {
                         }
                     }
                     
-                    TextField("Video Title", text: $videoTitle)
-                    TextField("Channel Name", text: $videoChannel)
-                    HStack {
-                         Text("Date:")
-                         TextField("Publish Date", text: $videoDate)
+                    VStack(spacing: 12) {
+                        TextField("Video Title", text: $videoTitle)
+                        TextField("Channel Name", text: $videoChannel)
+                        HStack {
+                            Text("Date:")
+                                .frame(width: 40, alignment: .leading)
+                            TextField("Publish Date", text: $videoDate)
+                        }
                     }
                     
                     VStack(alignment: .leading) {
@@ -113,6 +116,8 @@ struct AIGeneratorView: View {
                         TextEditor(text: $transcript)
                             .frame(height: 120)
                             .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.gray.opacity(0.2)))
+                        Text("Tip: Go to the video, open description, click 'Show Transcript', then copy/paste here.")
+                            .font(.caption).foregroundColor(.secondary)
                     }
                 }
                 
@@ -164,8 +169,19 @@ struct AIGeneratorView: View {
     }
     
     func fetchInfo() {
-        guard let url = URL(string: urlString) else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        // Convert Shorts URL to Watch URL for better scraping
+        var targetURLString = urlString
+        if urlString.contains("/shorts/") {
+            targetURLString = urlString.replacingOccurrences(of: "/shorts/", with: "/watch?v=")
+        }
+        
+        guard let url = URL(string: targetURLString) else { return }
+        
+        var request = URLRequest(url: url)
+        // Pretend to be a browser to avoid generic "YouTube" title
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             if let data = data, let html = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
                     if let range = html.range(of: "<title>(.*?)</title>", options: .regularExpression) {
