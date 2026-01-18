@@ -48,15 +48,18 @@ struct AffiliateSettings: Codable {
     var defaultAffiliateDisclosure: String
     var globalAffiliateIds: [String: String] // Network.rawValue -> Affiliate ID
     var defaultCampaign: String
+    var geniusLinkTSID: String // For Amazon Localization
     
     init(
         defaultAffiliateDisclosure: String = "We may earn a commission when you buy through links on our site. This helps support our work and does not affect our reviews or recommendations.",
         globalAffiliateIds: [String: String] = [:],
-        defaultCampaign: String = ""
+        defaultCampaign: String = "",
+        geniusLinkTSID: String = ""
     ) {
         self.defaultAffiliateDisclosure = defaultAffiliateDisclosure
         self.globalAffiliateIds = globalAffiliateIds
         self.defaultCampaign = defaultCampaign
+        self.geniusLinkTSID = geniusLinkTSID
     }
 }
 

@@ -773,6 +773,7 @@ class SiteGeneratorSync {
             <meta name="twitter:image" content="assets/og-image.png">
             
             <link rel="stylesheet" href="style.css">
+            \(generateGeniusLinkScript())
         </head>
         <body>
             <!-- Header -->
@@ -1206,5 +1207,20 @@ extension SiteGeneratorSync {
         
         // Return pretty path
         return "go/\(slug)/"
+    }
+    
+    func generateGeniusLinkScript() -> String {
+        guard !site.affiliateSettings.geniusLinkTSID.isEmpty else { return "" }
+        return """
+        <!-- Amazon Link Engine (GeniusLink) -->
+        <script src="//cdn.gei.us/snippet.js" async></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                if (typeof GeiUs !== 'undefined') {
+                    GeiUs.snippet.config.tsid = \(site.affiliateSettings.geniusLinkTSID);
+                }
+            });
+        </script>
+        """
     }
 }

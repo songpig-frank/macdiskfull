@@ -99,7 +99,7 @@ struct ContentView: View {
             SiteSettingsView(site: Binding(
                 get: { store.site },
                 set: { store.site = $0 }
-            ), onSave: store.save, onReset: store.resetToSample)
+            ), showAffiliateManager: $showAffiliateManager, onSave: store.save, onReset: store.resetToSample)
         case .products:
             ProductsView(store: store)
         case .preview:
@@ -255,6 +255,7 @@ struct WelcomeView: View {
 
 struct SiteSettingsView: View {
     @Binding var site: Site
+    @Binding var showAffiliateManager: Bool
     var onSave: () -> Void
     var onReset: () -> Void
     @State private var showResetConfirm = false
@@ -360,6 +361,30 @@ struct SiteSettingsView: View {
                     }
                     .padding()
                     .onChange(of: site.affiliateSettings.defaultAffiliateDisclosure) { _ in onSave() }
+                    .onChange(of: site.affiliateSettings.defaultAffiliateDisclosure) { _ in onSave() }
+                }
+                
+                // Amazon Localization (GeniusLink)
+                GroupBox(label: Label("Amazon Localization", systemImage: "globe.americas.fill")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Automatically localize Amazon links using GeniusLink (Amazon Link Engine).")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        LabeledTextField(label: "GeniusLink TSID", text: $site.affiliateSettings.geniusLinkTSID, placeholder: "e.g. 12345")
+                        
+                        if !site.affiliateSettings.geniusLinkTSID.isEmpty {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Localization active")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .onChange(of: site.affiliateSettings.geniusLinkTSID) { _ in onSave() }
                 }
                 
                 // Summary

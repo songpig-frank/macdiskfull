@@ -191,13 +191,6 @@ class AffiliateDatabase: ObservableObject {
     
     // MARK: - Sync Capabilities
     
-    /// The remote source of truth
-    static let masterDatabaseURL = URL(string: "https://funsoftware.cc/api/affiliates.json")!
-    
-    /// Sync with remote database to get new programs
-    @Published var isSyncing = false
-    @Published var lastSyncDate: Date?
-    
     /// Fetch updates from the external master list
     func checkForUpdates(completion: @escaping (Result<Int, Error>) -> Void) {
         guard !isSyncing else { return }
