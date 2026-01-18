@@ -15,6 +15,8 @@ struct AIGeneratorView: View {
     
     @State private var isGenerating = false
     @State private var errorMessage = ""
+    @State private var connectionStatus = ""
+    @State private var isTestingInfo = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -30,30 +32,51 @@ struct AIGeneratorView: View {
             
             Form {
                 Section(header: Text("Configuration")) {
-                    SecureField("API Key (Required)", text: $site.openAIKey)
-                    if site.openAIKey.isEmpty {
-                        Text("Get a key from platform.openai.com or openrouter.ai").font(.caption).foregroundColor(.red)
-                    }
-                    
                     Picker("Provider", selection: $site.aiProvider) {
                         Text("OpenAI").tag("OpenAI")
+                        Text("Anthropic").tag("Anthropic")
+                        Text("Ollama (Local)").tag("Ollama")
                         Text("OpenRouter").tag("OpenRouter")
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     
+                    // Provider Specific Fields
                     if site.aiProvider == "OpenAI" {
+                        SecureField("OpenAI API Key", text: $site.openAIKey)
                         Picker("Model", selection: $site.aiModel) {
                             Text("GPT-4o").tag("gpt-4o")
                             Text("GPT-4 Turbo").tag("gpt-4-turbo")
                             Text("GPT-3.5 Turbo").tag("gpt-3.5-turbo")
                         }
-                    } else {
+                    } else if site.aiProvider == "Anthropic" {
+                        SecureField("Anthropic API Key", text: $site.anthropicKey)
                         Picker("Model", selection: $site.aiModel) {
-                            Text("Claude 3.5 Sonnet").tag("anthropic/claude-3.5-sonnet")
-                            Text("GPT-4o (via OR)").tag("openai/gpt-4o")
-                            Text("Llama 3 70B").tag("meta-llama/llama-3-70b-instruct")
-                            Text("Mixtral 8x22B").tag("mistralai/mixtral-8x22b")
-                            Text("Gemini Pro 1.5").tag("google/gemini-pro-1.5")
+                            Text("Claude 3.5 Sonnet").tag("claude-3-5-sonnet-20240620")
+                            Text("Claude 3 Opus").tag("claude-3-opus-20240229")
+                            Text("Claude 3 Haiku").tag("claude-3-haiku-20240307")
+                        }
+                    } else if site.aiProvider == "Ollama" {
+                        TextField("Base URL", text: $site.ollamaURL)
+                        TextField("Model Name (e.g. llama3)", text: $site.aiModel)
+                        Text("Ensure 'ollama serve' is running.").font(.caption)
+                    } else if site.aiProvider == "OpenRouter" {
+                        SecureField("OpenRouter Key", text: $site.openAIKey)
+                        Picker("Model", selection: $site.aiModel) {
+                             Text("Claude 3.5 Sonnet").tag("anthropic/claude-3.5-sonnet")
+                             Text("GPT-4o").tag("openai/gpt-4o")
+                             Text("Llama 3 70B").tag("meta-llama/llama-3-70b-instruct")
+                             Text("Mixtral 8x22B").tag("mistralai/mixtral-8x22b")
+                             Text("Gemini Pro 1.5").tag("google/gemini-pro-1.5")
+                        }
+                    }
+                    
+                    // Test Button
+                    HStack {
+                        Button("Test Connection") { testConnection() }
+                        if !connectionStatus.isEmpty {
+                            Text(connectionStatus)
+                                .foregroundColor(connectionStatus.contains("Success") ? .green : .red)
+                                .font(.caption)
                         }
                     }
                 }
@@ -80,15 +103,16 @@ struct AIGeneratorView: View {
                     
                     TextField("Video Title", text: $videoTitle)
                     TextField("Channel Name", text: $videoChannel)
-                    TextField("Publish Date", text: $videoDate)
+                    HStack {
+                         Text("Date:")
+                         TextField("Publish Date", text: $videoDate)
+                    }
                     
                     VStack(alignment: .leading) {
                         Text("Transcript / Notes")
                         TextEditor(text: $transcript)
                             .frame(height: 120)
                             .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.gray.opacity(0.2)))
-                        Text("Tip: Click 'Show Transcript' on YouTube and copy/paste here.")
-                            .font(.caption).foregroundColor(.secondary)
                     }
                 }
                 
@@ -101,7 +125,7 @@ struct AIGeneratorView: View {
                         }
                         .frame(maxWidth: .infinity)
                     }
-                    .disabled(site.openAIKey.isEmpty || transcript.isEmpty)
+                    .disabled(transcript.isEmpty)
                     
                     if !errorMessage.isEmpty {
                         Text(errorMessage)
@@ -112,7 +136,31 @@ struct AIGeneratorView: View {
             }
             .padding()
         }
-        .frame(width: 500, height: 800)
+        .frame(width: 550, height: 850)
+    }
+    
+    func testConnection() {
+        connectionStatus = "Testing..."
+        // Determine Key based on provider
+        var key = site.openAIKey
+        if site.aiProvider == "Anthropic" { key = site.anthropicKey }
+        // Ollama uses URL not key (usually)
+        
+        AIContentService.shared.testConnection(
+            provider: site.aiProvider,
+            apiKey: key,
+            model: site.aiModel,
+            endpointURL: site.ollamaURL
+        ) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(_):
+                    connectionStatus = "Success! Connected."
+                case .failure(let err):
+                    connectionStatus = "Failed: \(err.localizedDescription)"
+                }
+            }
+        }
     }
     
     func fetchInfo() {
@@ -120,7 +168,6 @@ struct AIGeneratorView: View {
         URLSession.shared.dataTask(with: url) { data, _, _ in
             if let data = data, let html = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
-                    // Simple Regex for Title
                     if let range = html.range(of: "<title>(.*?)</title>", options: .regularExpression) {
                         let raw = String(html[range])
                         let clean = raw.replacingOccurrences(of: "<title>", with: "").replacingOccurrences(of: " - YouTube</title>", with: "").replacingOccurrences(of: "</title>", with: "")
@@ -142,12 +189,16 @@ struct AIGeneratorView: View {
             url: urlString
         )
         
+        var key = site.openAIKey
+        if site.aiProvider == "Anthropic" { key = site.anthropicKey }
+        
         AIContentService.shared.generateArticle(
             transcript: transcript,
             metadata: meta,
-            apiKey: site.openAIKey,
+            apiKey: key,
             provider: site.aiProvider,
-            model: site.aiModel
+            model: site.aiModel,
+            endpointURL: site.ollamaURL
         ) { result in
             DispatchQueue.main.async {
                 isGenerating = false
