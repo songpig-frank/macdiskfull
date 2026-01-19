@@ -10,7 +10,8 @@ struct VideoMetadata {
 
 struct PolishedResult: Decodable {
     let html: String
-    let seo_score: Int
+    let original_score: Int // Score of the input content
+    let seo_score: Int // Score of the polished content
     let keywords: [String]
     let analysis: String
     let recommendations: [String] // Steps to reach 100%
@@ -94,7 +95,7 @@ class AIContentService {
                 completion(.failure(error))
             }
         }
-        }
+    }
 
 
     func polishArticle(contentHTML: String, customRules: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
@@ -102,22 +103,22 @@ class AIContentService {
         let systemPrompt = "You are an elite SEO & AI Optimization Expert. Output valid JSON only."
         
         let userPrompt = """
-        Optimize and polish the following blog post. Return a JSON object with this structure:
+        Analyze, Optimize, and Polish the following blog post. Return a JSON object with this structure:
         {
-          "html": "The refined clean HTML body content (no <html> tags)",
-          "seo_score": 85, // 0-100 score based on optimization quality
-          "keywords": ["keyword1", "keyword2"], // 5-10 potential heavy-hitter keywords
-          "analysis": "Short explanation of what was improved and why.",
-          "recommendations": ["Step 1: Add more backlinks", "Step 2: Increase word count"], // Specific steps to reach 100% perfection
-          "conflict_resolution": "If SEO rules (keywords) conflict with AI rules (natural flow), prioritize [Verdict] because [Reason]."
+          "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
+          "seo_score": 95, // The score of your NEW polished version
+          "html": "The polished HTML body content",
+          "keywords": ["keyword1", "keyword2"], // Target keywords found/added
+          "analysis": "Explanation of changes",
+          "recommendations": ["Step 1", "Step 2"],
+          "conflict_resolution": "Verdict on SEO vs AI conflicts"
         }
 
         Instructions:
-        1. **Strip Chatter**: Remove "Here is the article", "Sources", etc.
-        2. **Semantic**: Use H2/H3.
-        3. **Snippets**: Bold direct answers.
-        4. **Visuals**: Use <img src="https://placehold.co/600x400?text=Scan+Mac" alt="Scan Mac" />
-        5. **Conflict Protocol**: If AI readability conflicts with SEO keyword density, prioritize **Human/AI Readability** (User Experience) as modern algorithms penalize stuffing.
+        1. **Evaluate First**: honestly score the provided content based on SEO best practices.
+        2. **Optimize**: Rewrite to improve score to 90+.
+        3. **Strip Chatter**: Remove intro/outro.
+        4. **Visuals**: Add <img ... placeholders.
         
         DYNAMIC ENGINE RULES (User-Defined):
         \(customRules)

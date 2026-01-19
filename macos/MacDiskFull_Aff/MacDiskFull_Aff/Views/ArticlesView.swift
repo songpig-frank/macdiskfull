@@ -281,6 +281,8 @@ struct ArticleEditorView: View {
     var onClose: () -> Void
     @State private var selectedTab: Int = 0
     @State private var isPolishing: Bool = false
+    @State private var pendingPolishedResult: PolishedResult? = nil
+    @State private var showComparison: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -438,6 +440,28 @@ struct ArticleEditorView: View {
             }
         }
         // Removed navigationTitle modifier as we have a custom header
+        .sheet(isPresented: $showComparison) {
+            if let result = pendingPolishedResult {
+                PolishedResultComparisonView(
+                    original: article.contentHTML,
+                    result: result,
+                    onApply: {
+                        article.contentHTML = result.html
+                        article.seoScore = result.seo_score
+                        article.seoKeywords = result.keywords
+                        article.seoAnalysis = result.analysis
+                        article.seoRecommendations = result.recommendations
+                        article.seoConflictResolution = result.conflict_resolution
+                        showComparison = false
+                        pendingPolishedResult = nil
+                    },
+                    onCancel: {
+                        showComparison = false
+                        pendingPolishedResult = nil
+                    }
+                )
+            }
+        }
     }
     
     func polishContent() {
@@ -457,15 +481,11 @@ struct ArticleEditorView: View {
                 isPolishing = false
                 switch result {
                 case .success(let refined):
-                    article.contentHTML = refined.html
-                    article.seoScore = refined.seo_score
-                    article.seoKeywords = refined.keywords
-                    article.seoAnalysis = refined.analysis
-                    article.seoRecommendations = refined.recommendations
-                    article.seoConflictResolution = refined.conflict_resolution
+                    pendingPolishedResult = refined
+                    showComparison = true
                 case .failure(let error):
                     print("Polish error: \(error.localizedDescription)")
-                    // Optional: Show alert
+
                 }
             }
         }
