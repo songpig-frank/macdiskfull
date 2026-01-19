@@ -99,7 +99,13 @@ struct AIGeneratorView: View {
                             .disabled(urlString.isEmpty)
                         Text(fetchStatus)
                             .font(.caption)
-                            .foregroundColor(fetchStatus.contains("Fail") || fetchStatus.contains("hidden") ? .orange : .gray)
+                            .foregroundColor(fetchStatus.contains("Fail") || fetchStatus.contains("hidden") || fetchStatus.contains("Error") ? .orange : .gray)
+                        
+                        if !videoTitle.isEmpty {
+                            Button("Fetch Transcript (Python)") { fetchTranscriptPython() }
+                                .font(.caption)
+                        }
+                        
                         if !videoTitle.isEmpty && fetchStatus.isEmpty {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                         }
@@ -285,6 +291,73 @@ struct AIGeneratorView: View {
         }.resume()
     }
 
+    
+    func fetchTranscriptPython() {
+        self.fetchStatus = "Starting Python fetch..."
+        
+        // 1. Resolve Script Path (Bundle vs Dev)
+        var scriptPath = Bundle.main.path(forResource: "get_transcript", ofType: "py")
+        
+        // Fallback for Development (since script isn't in 'Copy Bundle Resources' yet)
+        if scriptPath == nil {
+            scriptPath = "/Users/nc/macdiskfull_affiliate/macos/MacDiskFull_Aff/MacDiskFull_Aff/Services/scripts/get_transcript.py"
+        }
+        
+        guard let finalScriptPath = scriptPath, FileManager.default.fileExists(atPath: finalScriptPath) else {
+            self.fetchStatus = "Script missing! Add get_transcript.py to Xcode Resources."
+            return
+        }
+        
+        // 2. Resolve Python Path
+        // In a real DMG, you might bundle a python runtime or check various paths
+        // For now, we trust /usr/bin/python3
+        let pythonPath = "/usr/bin/python3"
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: pythonPath)
+            task.arguments = [finalScriptPath, self.urlString]
+            
+            let outPipe = Pipe()
+            let errPipe = Pipe()
+            task.standardOutput = outPipe
+            task.standardError = errPipe
+            
+            do {
+                try task.run()
+                task.waitUntilExit()
+                
+                let data = outPipe.fileHandleForReading.readDataToEndOfFile()
+                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+                
+                if let jsonStr = String(data: data, encoding: .utf8) {
+                    print("Python Out: \(jsonStr)")
+                    
+                    if let jsonData = jsonStr.data(using: .utf8),
+                       let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                        
+                        if let error = json["error"] as? String {
+                             DispatchQueue.main.async { self.fetchStatus = "Py Err: \(error)" }
+                        } else if let text = json["text"] as? String {
+                             DispatchQueue.main.async {
+                                 self.transcript = text
+                                 self.fetchStatus = "Success (Python)!"
+                             }
+                        }
+                    } else {
+                        // Check stderr
+                        if let errStr = String(data: errData, encoding: .utf8), !errStr.isEmpty {
+                            DispatchQueue.main.async { self.fetchStatus = "Py Stderr: \(errStr)" }
+                        } else {
+                            DispatchQueue.main.async { self.fetchStatus = "Invalid Output" }
+                        }
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async { self.fetchStatus = "Exec Failed: \(error.localizedDescription)" }
+            }
+        }
+    }
     
     func generate() {
         isGenerating = true
