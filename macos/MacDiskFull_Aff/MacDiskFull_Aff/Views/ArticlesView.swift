@@ -12,6 +12,7 @@ struct ArticlesView: View {
     @Binding var site: Site
     @State private var editingArticleId: UUID?
     @State private var showAIWriter: Bool = false
+    @State private var confirmingRestore = false
     
     var body: some View {
         List {
@@ -45,19 +46,26 @@ struct ArticlesView: View {
                     }
                 }
             }
-            ToolbarItem(placement: .confirmationAction) { // Use explicit placement for Restore
+            ToolbarItem(placement: .confirmationAction) { 
                  Button("Restore Defaults") {
-                    // Reset to the beefed up seeded content
-                    site.articles = Site.sampleMacDiskFull.articles
+                    confirmingRestore = true
                 }
                 .help("Reloads the high-quality default articles")
             }
         }
+        .alert(isPresented: $confirmingRestore) {
+            Alert(
+                title: Text("Restore Default Articles"),
+                message: Text("Are you sure? This will DELETE all your current articles and replace them with the sample data. This cannot be undone."),
+                primaryButton: .destructive(Text("Restore & Replace")) {
+                    site.articles = Site.sampleMacDiskFull.articles
+                },
+                secondaryButton: .cancel()
+            )
+        }
         .sheet(isPresented: $showAIWriter) {
             AIGeneratorView(site: $site) { newArticle in
                 site.articles.append(newArticle)
-                // editingArticleId = newArticle.id // Cannot open two sheets at once on macOS easily if nested
-                // Just close AI sheet, user sees new article.
             }
         }
         .sheet(item: Binding(
