@@ -13,6 +13,7 @@ struct AIGeneratorView: View {
     @State private var videoChannel = ""
     @State private var videoDate = ""
     
+    @State private var includeNoTranscript = false
     @State private var isSearching = false
     @State private var searchResults: [VideoCandidate] = []
     
@@ -103,6 +104,8 @@ struct AIGeneratorView: View {
                         Button("Find Best Videos (Auto-Ranked)") {
                             findBestVideos()
                         }
+                        Toggle("Include videos without transcripts", isOn: $includeNoTranscript)
+                            .font(.caption)
                     }
                     
                     if !searchResults.isEmpty {
@@ -594,14 +597,20 @@ struct AIGeneratorView: View {
             let lock = NSLock()
             
             for candidate in potentialCandidates {
-                group.enter()
-                self.checkTranscriptAvailability(videoID: candidate.id) { available in
-                    if available {
-                        lock.lock()
-                        verifiedCandidates.append(candidate)
-                        lock.unlock()
+                if self.includeNoTranscript {
+                     lock.lock()
+                     verifiedCandidates.append(candidate)
+                     lock.unlock()
+                } else {
+                    group.enter()
+                    self.checkTranscriptAvailability(videoID: candidate.id) { available in
+                        if available {
+                            lock.lock()
+                            verifiedCandidates.append(candidate)
+                            lock.unlock()
+                        }
+                        group.leave()
                     }
-                    group.leave()
                 }
             }
             
