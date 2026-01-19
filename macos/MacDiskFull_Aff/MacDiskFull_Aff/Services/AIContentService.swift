@@ -11,6 +11,7 @@ struct VideoMetadata {
 struct ScoreComponent: Decodable {
     let criterion: String
     let score: Int
+        let score_breakdown: [ScoreComponent]?
     let max_score: Int
     let reasoning: String
 }
@@ -157,6 +158,7 @@ class AIContentService {
 
     struct ContentAnalysis: Decodable {
         let score: Int
+        let score_breakdown: [ScoreComponent]?
         let analysis: String
         let recommendations: [String]
     }
@@ -168,6 +170,9 @@ class AIContentService {
         Return a JSON object:
         {
             "score": 0-100,
+            "score_breakdown": [
+                { "criterion": "Title Impact", "score": 15, "max_score": 20, "reasoning": "..." }
+            ],
             "analysis": "Short explanation of the score.",
             "recommendations": ["Point 1", "Point 2"]
         }
@@ -186,13 +191,22 @@ class AIContentService {
         generateRaw(prompt: userPrompt, system: systemPrompt, provider: provider, apiKey: apiKey, model: model, endpointURL: endpointURL) { result in
             switch result {
             case .success(let jsonString):
-                 // Parse
-                 let clean = jsonString.replacingOccurrences(of: "```json", with: "").replacingOccurrences(of: "```", with: "")
-                 if let data = clean.data(using: .utf8),
-                    let analysis = try? JSONDecoder().decode(ContentAnalysis.self, from: data) {
-                     completion(.success(analysis))
+                 AIContentService.logDebug("[analyzeContent] Received response")
+                 var clean = jsonString
+                 if let start = jsonString.range(of: "{"), let end = jsonString.range(of: "}", options: .backwards) {
+                     clean = String(jsonString[start.lowerBound...end.lowerBound])
+                 }
+                 
+                 if let data = clean.data(using: .utf8) {
+                     do {
+                        let analysis = try JSONDecoder().decode(ContentAnalysis.self, from: data)
+                        completion(.success(analysis))
+                     } catch {
+                        AIContentService.logDebug("[analyzeContent] JSON Decode Error: \(error)")
+                        completion(.failure(AIError.jsonParsingFailed("Invalid JSON", clean)))
+                     }
                  } else {
-                     completion(.failure(AIError.jsonParsingFailed("Invalid JSON", clean)))
+                     completion(.failure(AIError.jsonParsingFailed("Invalid JSON Data", clean)))
                  }
             case .failure(let error):
                 completion(.failure(error))

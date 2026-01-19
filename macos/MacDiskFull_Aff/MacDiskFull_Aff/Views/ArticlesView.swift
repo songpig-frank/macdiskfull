@@ -844,7 +844,22 @@ struct ArticleEditorView: View {
                      lastAnalysis = analysis
                      // Update article's SEO score
                      article.seoScore = analysis.score
-                     activeAlert = .analysis(analysis)
+                      // Show Visual Scorecard
+                      let scorecard = PolishedResult(
+                          title: self.article.title, 
+                          slug: self.article.slug, 
+                          summary: self.article.summary, 
+                          html: self.article.contentHTML,
+                          original_score: 0, 
+                          seo_score: analysis.score, 
+                          score_breakdown: analysis.score_breakdown, 
+                          keywords: [], 
+                          analysis: analysis.analysis, 
+                          recommendations: analysis.recommendations, 
+                          conflict_resolution: ""
+                      )
+                      self.pendingPolishedResult = scorecard
+                      self.showComparison = true
                  case .failure(let error):
                      activeAlert = .error(error.localizedDescription)
                  }
