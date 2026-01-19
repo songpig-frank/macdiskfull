@@ -231,11 +231,10 @@ class AIContentService {
            - **MISSING IMAGES**: You MUST insert `<img src="https://placehold.co/600x400/png" alt="PROMPT: Describe image here" />` placeholders where potential images should go.
            - **RULE**: Every 300-400 words (or every major section) NEEDS a visual.
            - **The User doesn't know what images to add - YOU must tell them via these placeholders.**
-        7. **Score**:
-           - Calculate score assuming these placeholders will be real images.
-           - High scores REQUIRE this visual structure.
-        
-        DYNAMIC ENGINE RULES (User-Defined):
+        7. **Score (REALITY CHECK)**:
+           - **PLACEHOLDERS = LOW SCORE**: If the content contains `placehold.co` or generic placeholders, the `seo_score` MUST NOT exceed 70. Comment: "Replace placeholders with real images to rank."
+           - **REAL IMAGES = HIGH SCORE**: You can only award 90+ if the `<img>` tags point to real, specific image files/URLs (not placeholders).
+           - This ensures we grade the *visual reality* of the page, not just the text.
         \(customRules)
         
         Content:
