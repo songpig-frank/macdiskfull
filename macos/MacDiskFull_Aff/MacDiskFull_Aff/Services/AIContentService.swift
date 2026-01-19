@@ -95,7 +95,7 @@ class AIContentService {
             }
         }
         }
-    }
+
 
     func polishArticle(contentHTML: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
         
