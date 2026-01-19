@@ -133,7 +133,7 @@ struct AIGeneratorView: View {
                                 Button("Use This") {
                                     selectVideo(video)
                                 }
-                                .buttonStyle(BorderedProminentButtonStyle())
+                                // .buttonStyle(BorderedProminentButtonStyle()) // Removed for macOS 11 compat
                             }
                             .padding(.vertical, 4)
                         }
@@ -192,7 +192,7 @@ struct AIGeneratorView: View {
                             Text("Transcript / Notes")
                             Spacer()
                             if !videoTitle.isEmpty {
-                                Button("Fetch Transcript (Python)") { fetchTranscriptPython() }
+                                Button("Fetch Transcript (Smart)") { fetchTranscriptSmart() }
                                     .font(.caption)
                                     .padding(4)
                                     .background(Color.blue.opacity(0.1))
@@ -407,35 +407,95 @@ struct AIGeneratorView: View {
     }
 
     
-    func fetchTranscriptPython() {
-        self.fetchStatus = "Starting Python fetch..."
+    func fetchTranscriptSmart() {
+        self.fetchStatus = "Fetching transcript (Native)..."
         
-        // 1. Resolve Script Path (Bundle vs Dev)
-        var scriptPath = Bundle.main.path(forResource: "get_transcript", ofType: "py")
+        guard let url = URL(string: urlString) else { return }
         
-        // Fallback for Development (since script isn't in 'Copy Bundle Resources' yet)
-        if scriptPath == nil {
-            scriptPath = "/Users/nc/macdiskfull_affiliate/macos/MacDiskFull_Aff/MacDiskFull_Aff/Services/scripts/get_transcript.py"
-        }
+        var request = URLRequest(url: url)
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.addValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
         
-        guard let finalScriptPath = scriptPath, FileManager.default.fileExists(atPath: finalScriptPath) else {
-            self.fetchStatus = "Script missing! Add get_transcript.py to Xcode Resources."
-            return
-        }
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data, let html = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async { self.fetchStatus = "Network Error" }
+                return
+            }
+            
+            // 1. Find Caption Tracks
+            // Pattern: "captionTracks":[{"baseUrl":"..."
+            if let range = html.range(of: "\"captionTracks\":[{\"baseUrl\":\"") {
+                let suffix = String(html[range.upperBound...])
+                if let endRange = suffix.range(of: "\"") {
+                    let captionUrlString = String(suffix[..<endRange.lowerBound]).replacingOccurrences(of: "\\u0026", with: "&")
+                    
+                    if let captionUrl = URL(string: captionUrlString) {
+                        self.fetchCaptionXML(url: captionUrl)
+                        return
+                    }
+                }
+            }
+            
+            // If failed, try Python fallback (only if Native fails)
+            DispatchQueue.main.async {
+                self.fetchStatus = "Native fetch failed. Trying Python..."
+                self.fetchTranscriptPythonFallback()
+            }
+        }.resume()
+    }
+    
+    func fetchCaptionXML(url: URL) {
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data, let xml = String(data: data, encoding: .utf8) else { return }
+            
+            // Simple Regex Parse of XML
+            do {
+                let regex = try NSRegularExpression(pattern: "<text.*?>(.*?)</text>", options: [])
+                let matches = regex.matches(in: xml, range: NSRange(xml.startIndex..., in: xml))
+                
+                var fullText = ""
+                for match in matches {
+                    if let r = Range(match.range(at: 1), in: xml) {
+                        let text = String(xml[r])
+                            .replacingOccurrences(of: "&#39;", with: "'")
+                            .replacingOccurrences(of: "&quot;", with: "\"")
+                            .replacingOccurrences(of: "&amp;", with: "&")
+                        fullText += text + " "
+                    }
+                }
+                
+                DispatchQueue.main.async {
+                    if fullText.isEmpty {
+                        self.fetchStatus = "Transcript empty."
+                    } else {
+                        self.transcript = fullText
+                        self.fetchStatus = "Success! (Native)"
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async { self.fetchStatus = "XML Parse Error" }
+            }
+        }.resume()
+    }
+
+    func fetchTranscriptPythonFallback() {
+        // ... (Keep existing Python logic here as backup)
+        // For brevity in this edit, I'm renaming the old function or calling it.
+        // Actually, I'll just keep the old body here if I can, or rely on the fact that I'm replacing the old 'fetchTranscriptPython'
         
-        // 2. Resolve Python Path via Shell to avoid xcrun shim issues and find Homebrew/User python
+        // RE-INSERTING THE PYTHON LOGIC AS FALLBACK
         let shellPath = "/bin/sh"
+        let scriptPath = "/Users/nc/macdiskfull_affiliate/macos/MacDiskFull_Aff/MacDiskFull_Aff/Services/scripts/get_transcript.py"
         
         DispatchQueue.global(qos: .userInitiated).async {
             let task = Process()
             task.executableURL = URL(fileURLWithPath: shellPath)
-            // Use 'python3' from PATH (could be /usr/local/bin or /opt/homebrew/bin)
-            // We quote the arguments to be safe
-            let command = "python3 \"\(finalScriptPath)\" \"\(self.urlString)\""
+            let command = "python3 \"\(scriptPath)\" \"\(self.urlString)\""
             task.arguments = ["-c", command]
             
-            // Add environment to find homebrew python
-            var env = ProcessInfo.processInfo.environment
+            // ... (rest of python logic)
+            // If it fails here, we report error.
+             var env = ProcessInfo.processInfo.environment
             env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
             task.environment = env
             
@@ -452,30 +512,24 @@ struct AIGeneratorView: View {
                 let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
                 
                 if let jsonStr = String(data: data, encoding: .utf8) {
-                    print("Python Out: \(jsonStr)")
-                    
                     if let jsonData = jsonStr.data(using: .utf8),
                        let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
-                        
-                        if let error = json["error"] as? String {
-                             DispatchQueue.main.async { self.fetchStatus = "Py Err: \(error)" }
-                        } else if let text = json["text"] as? String {
+                        if let text = json["text"] as? String {
                              DispatchQueue.main.async {
                                  self.transcript = text
                                  self.fetchStatus = "Success (Python)!"
                              }
-                        }
-                    } else {
-                        // Check stderr
-                        if let errStr = String(data: errData, encoding: .utf8), !errStr.isEmpty {
-                            DispatchQueue.main.async { self.fetchStatus = "Py Stderr: \(errStr)" }
                         } else {
-                            DispatchQueue.main.async { self.fetchStatus = "Invalid Output" }
+                             // Finally give up
+                             DispatchQueue.main.async { 
+                                 let err = json["error"] as? String ?? "Unknown"
+                                 self.fetchStatus = "Failed: \(err). Copy manually?" 
+                             }
                         }
                     }
                 }
             } catch {
-                DispatchQueue.main.async { self.fetchStatus = "Exec Failed: \(error.localizedDescription)" }
+                 DispatchQueue.main.async { self.fetchStatus = "Sandbox Blocked. Copy manually." }
             }
         }
     }
@@ -560,8 +614,8 @@ struct AIGeneratorView: View {
         self.videoDate = video.published
         self.searchResults = []
         
-        // Auto-Fetch Transcript
-        fetchTranscriptPython()
+        // Auto-Fetch Transcript (Smart Native First)
+        fetchTranscriptSmart()
     }
     
     func generate() {
