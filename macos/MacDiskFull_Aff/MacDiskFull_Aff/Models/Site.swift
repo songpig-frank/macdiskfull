@@ -54,7 +54,12 @@ struct Article: Identifiable, Codable {
     var publishedDate: Date
     var heroImage: String
     
-    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg") {
+    // SEO & AI Analysis
+    var seoScore: Int?         // 0-100
+    var seoKeywords: [String]?
+    var seoAnalysis: String?
+    
+    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil) {
         self.id = id
         self.title = title
         self.slug = slug
@@ -63,6 +68,9 @@ struct Article: Identifiable, Codable {
         self.author = author
         self.publishedDate = publishedDate
         self.heroImage = heroImage
+        self.seoScore = seoScore
+        self.seoKeywords = seoKeywords
+        self.seoAnalysis = seoAnalysis
     }
 }
 

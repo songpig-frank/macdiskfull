@@ -8,6 +8,13 @@ struct VideoMetadata {
     var url: String
 }
 
+struct PolishedResult: Decodable {
+    let html: String
+    let seo_score: Int
+    let keywords: [String]
+    let analysis: String
+}
+
 class AIContentService {
     static let shared = AIContentService()
     
@@ -85,20 +92,24 @@ class AIContentService {
                 completion(.failure(error))
             }
         }
-    func polishArticle(contentHTML: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<String, Error>) -> Void) {
+    func polishArticle(contentHTML: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
         
-        let systemPrompt = "You are an elite SEO & AI Optimization Expert. You specialize in structuring content to rank #1 on Google and get recommended by ChatGPT, Perplexity, and Gemini. You are also a master of HTML/CSS for high-converting affiliate articles. Output refined HTML BODY content only. Do not wrap in ```html."
+        let systemPrompt = "You are an elite SEO & AI Optimization Expert. Output valid JSON only."
         
         let userPrompt = """
-        Optimize and polish the following blog post content to maximize SEO, AI discoverability, and affiliate conversion revenue.
-        
-        Instructions:
-        1. **Strip Meta-Chatter**: REMOVE completely any intro/outro text like "Here is the article", "Sources:", or "Conclusion" headers that don't add value.
-        2. **Semantic Structure**: Use proper H2 and H3 tags. Structure the content so AI bots can easily parse the best answer.
-        3. **Snippet Optimization**: Start sections with direct, bold answers to common questions (for Featured Snippets).
-        4. **Affiliate Conversion**: formatting should be clean, professional, and trustworthy. Use bullet points for readability.
-        5. **Visuals**: Insert relevant placeholder images: <img src="https://placehold.co/600x400?text=Keywords" alt="Descriptive Alt Text" />
-        6. **Formatting**: paragraphs should be short (1-3 sentences). Use <strong>bold</strong> for key takeaways.
+        Optimize and polish the following blog post. Return a JSON object with this structure:
+        {
+          "html": "The refined clean HTML body content (no <html> tags)",
+          "seo_score": 85, // 0-100 score based on optimization quality
+          "keywords": ["keyword1", "keyword2"], // 5-10 potential heavy-hitter keywords
+          "analysis": "Short explanation of what was improved and why."
+        }
+
+        Instructions for 'html':
+        1. **Strip Chatter**: Remove "Here is the article", "Sources", etc.
+        2. **Semantic**: Use H2/H3.
+        3. **Snippets**: Bold direct answers.
+        4. **Visuals**: Use <img src="https://placehold.co/600x400?text=Scan+Mac" alt="Scan Mac" />
         
         Content:
         \(contentHTML.prefix(25000))
@@ -107,8 +118,18 @@ class AIContentService {
         generateRaw(prompt: userPrompt, system: systemPrompt, provider: provider, apiKey: apiKey, model: model, endpointURL: endpointURL) { result in
              switch result {
              case .success(let content):
-                  let clean = content.replacingOccurrences(of: "```html", with: "").replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                  completion(.success(clean))
+                  // Try to find JSON block
+                  var jsonString = content
+                  if let start = content.range(of: "{"), let end = content.range(of: "}", options: .backwards) {
+                       jsonString = String(content[start.lowerBound...end.upperBound])
+                  }
+                  
+                  if let data = jsonString.data(using: .utf8),
+                     let result = try? JSONDecoder().decode(PolishedResult.self, from: data) {
+                       completion(.success(result))
+                  } else {
+                       completion(.failure(AIError.apiError("Failed to parse JSON response")))
+                  }
              case .failure(let error):
                   completion(.failure(error))
              }

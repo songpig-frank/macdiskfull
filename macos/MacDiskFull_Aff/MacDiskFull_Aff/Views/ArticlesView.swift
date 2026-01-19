@@ -288,6 +288,43 @@ struct ArticleEditorView: View {
                 // EDIT MODE
                 ScrollView {
                     VStack(spacing: 16) {
+                        
+                        if let score = article.seoScore {
+                            GroupBox(label: Label("AI & SEO Grade", systemImage: "chart.bar.fill")) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack(alignment: .top, spacing: 16) {
+                                        VStack {
+                                            Text("\(score)")
+                                                .font(.system(size: 32, weight: .bold))
+                                                .foregroundColor(score >= 80 ? .green : (score >= 50 ? .orange : .red))
+                                            Text("Score")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
+                                        Divider()
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Analysis").font(.caption).bold()
+                                            Text(article.seoAnalysis ?? "No analysis.")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
+                                    
+                                    if let keywords = article.seoKeywords, !keywords.isEmpty {
+                                        Divider()
+                                        Text("Ranking Keywords:").font(.caption.bold())
+                                        Text(keywords.joined(separator: ", "))
+                                            .font(.caption)
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                                .padding(8)
+                            }
+                        }
+                        
                         GroupBox(label: Text("Metadata")) {
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
@@ -352,7 +389,10 @@ struct ArticleEditorView: View {
                 isPolishing = false
                 switch result {
                 case .success(let refined):
-                    article.contentHTML = refined
+                    article.contentHTML = refined.html
+                    article.seoScore = refined.seo_score
+                    article.seoKeywords = refined.keywords
+                    article.seoAnalysis = refined.analysis
                 case .failure(let error):
                     print("Polish error: \(error.localizedDescription)")
                     // Optional: Show alert
