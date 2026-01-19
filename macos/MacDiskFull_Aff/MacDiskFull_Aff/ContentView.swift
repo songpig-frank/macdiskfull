@@ -323,6 +323,93 @@ struct SiteSettingsView: View {
                     .padding()
                 }
                 
+                // AI Provider Configuration
+                GroupBox(label: Label("AI Configuration", systemImage: "cpu")) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Configure your AI provider for article generation and polishing.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        // Provider Picker
+                        HStack {
+                            Text("Provider:")
+                                .frame(width: 80, alignment: .trailing)
+                            Picker("", selection: $site.aiProvider) {
+                                Text("OpenAI").tag("OpenAI")
+                                Text("Anthropic").tag("Anthropic")
+                                Text("Ollama (Local)").tag("Ollama")
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .onChange(of: site.aiProvider) { _ in onSave() }
+                        }
+                        
+                        // Model Selection
+                        HStack {
+                            Text("Model:")
+                                .frame(width: 80, alignment: .trailing)
+                            TextField("Model Name", text: $site.aiModel)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: site.aiModel) { _ in onSave() }
+                        }
+                        
+                        Divider()
+                        
+                        // API Keys based on provider
+                        if site.aiProvider == "OpenAI" {
+                            HStack {
+                                Text("API Key:")
+                                    .frame(width: 80, alignment: .trailing)
+                                SecureField("sk-...", text: $site.openAIKey)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: site.openAIKey) { _ in onSave() }
+                            }
+                            Text("Get your key at platform.openai.com/api-keys")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        } else if site.aiProvider == "Anthropic" {
+                            HStack {
+                                Text("API Key:")
+                                    .frame(width: 80, alignment: .trailing)
+                                SecureField("sk-ant-...", text: $site.anthropicKey)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: site.anthropicKey) { _ in onSave() }
+                            }
+                            Text("Get your key at console.anthropic.com")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        } else if site.aiProvider == "Ollama" {
+                            HStack {
+                                Text("URL:")
+                                    .frame(width: 80, alignment: .trailing)
+                                TextField("http://localhost:11434", text: $site.ollamaURL)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: site.ollamaURL) { _ in onSave() }
+                            }
+                            Text("Ollama runs locally - no API key needed")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // Status indicator
+                        HStack {
+                            if site.aiProvider == "OpenAI" && !site.openAIKey.isEmpty {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("OpenAI configured").font(.caption)
+                            } else if site.aiProvider == "Anthropic" && !site.anthropicKey.isEmpty {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("Anthropic configured").font(.caption)
+                            } else if site.aiProvider == "Ollama" {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("Ollama (local) configured").font(.caption)
+                            } else {
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                                Text("Add your API key to enable AI features").font(.caption)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+                
                 // Affiliate Networks
                 GroupBox(label: Label("Affiliate Networks", systemImage: "link.badge.plus")) {
                     VStack(alignment: .leading, spacing: 12) {
