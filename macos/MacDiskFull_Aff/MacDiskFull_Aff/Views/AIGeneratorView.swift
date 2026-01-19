@@ -184,10 +184,27 @@ struct AIGeneratorView: View {
         URLSession.shared.dataTask(with: request) { data, _, _ in
             if let data = data, let html = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
+                    // 1. Fetch Title
                     if let range = html.range(of: "<title>(.*?)</title>", options: .regularExpression) {
                         let raw = String(html[range])
                         let clean = raw.replacingOccurrences(of: "<title>", with: "").replacingOccurrences(of: " - YouTube</title>", with: "").replacingOccurrences(of: "</title>", with: "")
                         self.videoTitle = clean
+                    }
+                    
+                    // 2. Fetch Channel Name (<link itemprop="name" content="...">)
+                    if let range = html.range(of: "<link itemprop=\"name\" content=\"(.*?)\"", options: .regularExpression) {
+                        let raw = String(html[range])
+                        if let content = raw.components(separatedBy: "content=\"").last?.dropLast() {
+                             self.videoChannel = String(content)
+                        }
+                    }
+                    
+                    // 3. Fetch Date (<meta itemprop="datePublished" content="...">)
+                    if let range = html.range(of: "<meta itemprop=\"datePublished\" content=\"(.*?)\"", options: .regularExpression) {
+                        let raw = String(html[range])
+                        if let content = raw.components(separatedBy: "content=\"").last?.dropLast() {
+                             self.videoDate = String(content)
+                        }
                     }
                 }
             }
