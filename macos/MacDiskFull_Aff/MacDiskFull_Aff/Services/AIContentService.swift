@@ -430,9 +430,14 @@ class AIContentService {
         
         print("🎨 [DALL-E] Generating: \(prompt.prefix(50))...")
         
-        URLSession.shared.dataTask(with: request) { data, _, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(AIError.invalidResponse)); return }
+            
+            // DEBUG: Print raw response
+            if let rawString = String(data: data, encoding: .utf8) {
+                print("🎨 [DALL-E/OpenRouter] Raw Response: \(rawString)")
+            }
             
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -446,10 +451,13 @@ class AIContentService {
                        let urlStr = first["url"] as? String {
                         completion(.success(urlStr))
                     } else {
+                        // Check for OpenRouter specific error format if OpenAI format failed
+                        print("🎨 [DALL-E/OpenRouter] Unexpected JSON structure: \(json)")
                         completion(.failure(AIError.apiError("No image URL in response")))
                     }
                 }
             } catch {
+                print("🎨 [DALL-E/OpenRouter] JSON Parse Error: \(error)")
                 completion(.failure(error))
             }
         }.resume()
