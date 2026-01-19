@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct LegalPagesView: View {
     @Binding var site: Site
@@ -525,11 +526,19 @@ struct AddLegalPageSheet: View {
     @Binding var isPresented: Bool
     
     @State private var selectedType: LegalPageType = .privacyPolicy
+    @State private var importMode = false
+    @State private var importedContent = ""
+    @State private var showMissingInfoAlert = false
     
     var availableTypes: [LegalPageType] {
         // Filter out types that already exist
         let existingTypes = Set(site.legalPages.map { $0.pageType })
         return LegalPageType.allCases.filter { !existingTypes.contains($0) }
+    }
+    
+    // Check if site has enough info for legal pages
+    var siteInfoComplete: Bool {
+        !site.name.isEmpty && !site.domain.isEmpty && !site.contact.email.isEmpty
     }
     
     var body: some View {
@@ -547,30 +556,118 @@ struct AddLegalPageSheet: View {
                 }
                 .padding()
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Select page type:")
-                        .font(.headline)
-                    
-                    ForEach(availableTypes) { type in
-                        Button(action: { selectedType = type }) {
+                // Mode Toggle
+                Picker("Mode", selection: $importMode) {
+                    Text("Generate New").tag(false)
+                    Text("Import Existing").tag(true)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .frame(width: 300)
+                
+                if importMode {
+                    // IMPORT MODE
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Select page type:")
+                            .font(.headline)
+                        
+                        Picker("Type", selection: $selectedType) {
+                            ForEach(availableTypes) { type in
+                                Text(type.rawValue).tag(type)
+                            }
+                        }
+                        
+                        Text("Paste your HTML content:")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        TextEditor(text: $importedContent)
+                            .font(.system(.body, design: .monospaced))
+                            .frame(height: 200)
+                            .border(Color.gray.opacity(0.3), width: 1)
+                        
+                        HStack {
+                            Button("Import from File...") {
+                                importFromFile()
+                            }
+                            Spacer()
+                            Text("\(importedContent.count) characters")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .frame(width: 450)
+                } else {
+                    // GENERATE MODE
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Site info preview
+                        VStack(alignment: .leading, spacing: 4) {
                             HStack {
-                                Image(systemName: type.icon)
-                                    .frame(width: 24)
-                                Text(type.rawValue)
-                                Spacer()
-                                if selectedType == type {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.accentColor)
+                                Image(systemName: siteInfoComplete ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                                    .foregroundColor(siteInfoComplete ? .green : .orange)
+                                Text("Site Information")
+                                    .font(.headline)
+                            }
+                            
+                            Group {
+                                HStack {
+                                    Text("Site Name:").foregroundColor(.secondary).frame(width: 80, alignment: .trailing)
+                                    Text(site.name.isEmpty ? "⚠️ Missing" : site.name)
+                                        .foregroundColor(site.name.isEmpty ? .orange : .primary)
+                                }
+                                HStack {
+                                    Text("Domain:").foregroundColor(.secondary).frame(width: 80, alignment: .trailing)
+                                    Text(site.domain.isEmpty ? "⚠️ Missing" : site.domain)
+                                        .foregroundColor(site.domain.isEmpty ? .orange : .primary)
+                                }
+                                HStack {
+                                    Text("Email:").foregroundColor(.secondary).frame(width: 80, alignment: .trailing)
+                                    Text(site.contact.email.isEmpty ? "⚠️ Missing" : site.contact.email)
+                                        .foregroundColor(site.contact.email.isEmpty ? .orange : .primary)
                                 }
                             }
-                            .padding()
-                            .background(selectedType == type ? Color.accentColor.opacity(0.1) : Color.clear)
-                            .cornerRadius(8)
+                            .font(.caption)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .padding()
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(8)
+                        
+                        if !siteInfoComplete {
+                            Text("⚠️ Fill in Site Settings first for accurate legal pages")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        
+                        Divider()
+                        
+                        Text("Select page type:")
+                            .font(.headline)
+                        
+                        ForEach(availableTypes) { type in
+                            Button(action: { selectedType = type }) {
+                                HStack {
+                                    Image(systemName: type.icon)
+                                        .frame(width: 24)
+                                    VStack(alignment: .leading) {
+                                        Text(type.rawValue)
+                                        Text(typeDescription(type))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    if selectedType == type {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.accentColor)
+                                    }
+                                }
+                                .padding()
+                                .background(selectedType == type ? Color.accentColor.opacity(0.1) : Color.clear)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
+                    .frame(width: 400)
                 }
-                .frame(width: 350)
             }
             
             Divider()
@@ -584,26 +681,72 @@ struct AddLegalPageSheet: View {
                 Spacer()
                 
                 if !availableTypes.isEmpty {
-                    Button("Add Page") {
-                        let newPage = LegalPage(pageType: selectedType)
-                        site.legalPages.append(newPage)
-                        selectedPageId = newPage.id
-                        isPresented = false
+                    if importMode {
+                        Button("Import Page") {
+                            let newPage = LegalPage(
+                                pageType: selectedType,
+                                title: selectedType.rawValue,
+                                contentHTML: importedContent.isEmpty ? selectedType.defaultContent : importedContent
+                            )
+                            site.legalPages.append(newPage)
+                            selectedPageId = newPage.id
+                            isPresented = false
+                        }
+                        .disabled(importedContent.isEmpty)
+                        .keyboardShortcut(.defaultAction)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(importedContent.isEmpty ? Color.gray : Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    } else {
+                        Button("Generate Page") {
+                            // Use site-specific content
+                            let newPage = LegalPage(pageType: selectedType, site: site)
+                            site.legalPages.append(newPage)
+                            selectedPageId = newPage.id
+                            isPresented = false
+                        }
+                        .keyboardShortcut(.defaultAction)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
                     }
-                    .keyboardShortcut(.defaultAction)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
                 }
             }
         }
         .padding(24)
-        .frame(width: 400)
+        .frame(width: importMode ? 520 : 450)
         .onAppear {
             if let first = availableTypes.first {
                 selectedType = first
+            }
+        }
+    }
+    
+    private func typeDescription(_ type: LegalPageType) -> String {
+        switch type {
+        case .privacyPolicy: return "How you collect and use data"
+        case .termsOfService: return "Rules for using your site"
+        case .cookiePolicy: return "Cookie usage disclosure"
+        case .eula: return "Software license agreement"
+        case .affiliateDisclosure: return "FTC-compliant affiliate disclosure"
+        case .disclaimer: return "Liability limitation"
+        }
+    }
+    
+    private func importFromFile() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.html, .plainText]
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                importedContent = try String(contentsOf: url, encoding: .utf8)
+            } catch {
+                print("Error importing file: \(error)")
             }
         }
     }
