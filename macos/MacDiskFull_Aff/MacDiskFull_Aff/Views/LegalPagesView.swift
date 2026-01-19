@@ -158,7 +158,7 @@ struct LegalPageRow: View {
         HStack(spacing: 10) {
             Image(systemName: page.pageType.icon)
                 .foregroundColor(statusColor)
-                .frame(width: 20)
+                .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(page.title)
@@ -170,15 +170,23 @@ struct LegalPageRow: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                     
-                    if page.status == .archived {
-                        Text("ARCHIVED")
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                    }
+                    // Status badge
+                    Text(page.status.rawValue.uppercased())
+                        .font(.caption2)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(statusColor.opacity(0.2))
+                        .foregroundColor(statusColor)
+                        .cornerRadius(3)
                 }
             }
+            
+            Spacer()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle()) // Makes entire row clickable
     }
     
     private var statusColor: Color {
@@ -200,94 +208,156 @@ struct LegalPageEditor: View {
     
     @State private var showDeleteConfirmation = false
     @State private var isPreviewMode = false
+    @State private var previousStatus: LegalPageStatus?
+    @State private var statusMessage: String?
+    @State private var showStatusToast = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack {
-                Image(systemName: page.pageType.icon)
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    TextField("Page Title", text: $page.title)
-                        .font(.title2.bold())
-                        .textFieldStyle(PlainTextFieldStyle())
+        ZStack {
+            VStack(spacing: 0) {
+                // Toolbar
+                HStack(alignment: .center, spacing: 16) {
+                    Image(systemName: page.pageType.icon)
+                        .font(.title2)
+                        .foregroundColor(.accentColor)
                     
-                    HStack(spacing: 12) {
-                        Text("Version \(page.version)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        TextField("Page Title", text: $page.title)
+                            .font(.title2.bold())
+                            .textFieldStyle(PlainTextFieldStyle())
                         
-                        Text("Modified: \(page.modifiedAt, style: .date)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text("•")
-                            .foregroundColor(.secondary)
-                        
-                        Text("/\(page.pageType.slug).html")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(.blue)
+                        HStack(spacing: 12) {
+                            Text("Version \(page.version)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Modified: \(page.modifiedAt, style: .date)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("•")
+                                .foregroundColor(.secondary)
+                            
+                            Text("/\(page.pageType.slug).html")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Status Picker - Fixed alignment
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Status").font(.caption).foregroundColor(.secondary)
+                        Picker("", selection: $page.status) {
+                            ForEach(LegalPageStatus.allCases, id: \.self) { status in
+                                Text(status.rawValue).tag(status)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .frame(width: 240)
+                        .labelsHidden()
                     }
                 }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
                 
-                Spacer()
+                Divider()
                 
-                // Status Picker
-                Picker("Status", selection: $page.status) {
-                    ForEach(LegalPageStatus.allCases, id: \.self) { status in
-                        Text(status.rawValue).tag(status)
+                // Action Bar
+                HStack {
+                    Toggle("Preview", isOn: $isPreviewMode)
+                        .toggleStyle(SwitchToggleStyle())
+                    
+                    Spacer()
+                    
+                    Button(action: { showRevisionHistory = true }) {
+                        Label("History (\(page.revisions.count))", systemImage: "clock.arrow.circlepath")
+                    }
+                    .help("View revision history")
+                    
+                    Button(action: onSaveRevision) {
+                        Label("Save Version", systemImage: "doc.badge.plus")
+                    }
+                    .help("Save current content as a new version")
+                    
+                    Button(action: { page.contentHTML = page.pageType.defaultContent }) {
+                        Label("Reset", systemImage: "arrow.counterclockwise")
+                    }
+                    .help("Reset to default template")
+                    
+                    Button(action: { showDeleteConfirmation = true }) {
+                        Label("Delete", systemImage: "trash")
+                            .foregroundColor(.red)
+                    }
+                    .help("Delete this page")
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                
+                Divider()
+                
+                // Content Area
+                if isPreviewMode {
+                    LegalPagePreview(content: page.contentHTML, title: page.title)
+                } else {
+                    LegalPageHTMLEditor(content: $page.contentHTML)
+                }
+            }
+            
+            // Status Toast
+            if showStatusToast, let message = statusMessage {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Image(systemName: statusIcon)
+                            .foregroundColor(.white)
+                        Text(message)
+                            .foregroundColor(.white)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(statusToastColor)
+                    .cornerRadius(8)
+                    .shadow(radius: 4)
+                    .padding(.bottom, 20)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.easeInOut(duration: 0.3), value: showStatusToast)
+            }
+        }
+        .onAppear {
+            previousStatus = page.status
+        }
+        .onChange(of: page.status) { newStatus in
+            if let prev = previousStatus, prev != newStatus {
+                // Auto-save revision when status changes
+                page.saveRevision(note: "Status changed from \(prev.rawValue) to \(newStatus.rawValue)")
+                
+                // Show toast
+                switch newStatus {
+                case .published:
+                    statusMessage = "✓ Page is now PUBLISHED"
+                case .draft:
+                    statusMessage = "Page moved to DRAFT"
+                case .archived:
+                    statusMessage = "Page has been ARCHIVED"
+                }
+                
+                withAnimation {
+                    showStatusToast = true
+                }
+                
+                // Hide toast after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation {
+                        showStatusToast = false
                     }
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .frame(width: 220)
             }
-            .padding()
-            .background(Color(NSColor.controlBackgroundColor))
-            
-            Divider()
-            
-            // Action Bar
-            HStack {
-                Toggle("Preview", isOn: $isPreviewMode)
-                    .toggleStyle(SwitchToggleStyle())
-                
-                Spacer()
-                
-                Button(action: { showRevisionHistory = true }) {
-                    Label("History (\(page.revisions.count))", systemImage: "clock.arrow.circlepath")
-                }
-                .help("View revision history")
-                
-                Button(action: onSaveRevision) {
-                    Label("Save Version", systemImage: "doc.badge.plus")
-                }
-                .help("Save current content as a new version")
-                
-                Button(action: { page.contentHTML = page.pageType.defaultContent }) {
-                    Label("Reset", systemImage: "arrow.counterclockwise")
-                }
-                .help("Reset to default template")
-                
-                Button(action: { showDeleteConfirmation = true }) {
-                    Label("Delete", systemImage: "trash")
-                        .foregroundColor(.red)
-                }
-                .help("Delete this page")
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-            
-            Divider()
-            
-            // Content Area
-            if isPreviewMode {
-                LegalPagePreview(content: page.contentHTML, title: page.title)
-            } else {
-                LegalPageHTMLEditor(content: $page.contentHTML)
-            }
+            previousStatus = newStatus
         }
         .alert(isPresented: $showDeleteConfirmation) {
             Alert(
@@ -296,6 +366,22 @@ struct LegalPageEditor: View {
                 primaryButton: .destructive(Text("Delete"), action: onDelete),
                 secondaryButton: .cancel()
             )
+        }
+    }
+    
+    private var statusIcon: String {
+        switch page.status {
+        case .published: return "checkmark.circle.fill"
+        case .draft: return "pencil.circle"
+        case .archived: return "archivebox"
+        }
+    }
+    
+    private var statusToastColor: Color {
+        switch page.status {
+        case .published: return .green
+        case .draft: return .orange
+        case .archived: return .gray
         }
     }
 }

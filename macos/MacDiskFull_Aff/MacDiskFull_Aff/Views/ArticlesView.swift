@@ -806,10 +806,32 @@ struct ArticleEditorView: View {
     
     func analyzeContent() {
         isAnalyzing = true
-        var key = site.openAIKey
-        if site.aiProvider == "Anthropic" { key = site.anthropicKey }
+        
+        // Get the correct API key based on provider
+        var key = ""
+        switch site.aiProvider {
+        case "OpenAI", "OpenRouter":
+            key = site.openAIKey
+        case "Anthropic":
+            key = site.anthropicKey
+        case "Gemini":
+            key = site.geminiKey
+        case "Ollama":
+            key = "" // Ollama doesn't need a key
+        default:
+            key = site.openAIKey
+        }
+        
+        // Check if we have a key (except for Ollama)
         if key.isEmpty && site.aiProvider != "Ollama" {
-            activeAlert = .error("No API Key found")
+            activeAlert = .error("No API Key found for \(site.aiProvider). Please configure it in Site Settings.")
+            isAnalyzing = false
+            return
+        }
+        
+        // Check if article has content
+        if article.contentHTML.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            activeAlert = .error("Article has no content to analyze. Please add some content first.")
             isAnalyzing = false
             return
         }
@@ -828,6 +850,8 @@ struct ArticleEditorView: View {
                  switch result {
                  case .success(let analysis):
                      lastAnalysis = analysis
+                     // Update article's SEO score
+                     article.seoScore = analysis.score
                      activeAlert = .analysis(analysis)
                  case .failure(let error):
                      activeAlert = .error(error.localizedDescription)
@@ -837,8 +861,21 @@ struct ArticleEditorView: View {
     }
     func polishContent() {
         isPolishing = true
-        var key = site.openAIKey
-        if site.aiProvider == "Anthropic" { key = site.anthropicKey }
+        
+        // Get the correct API key based on provider
+        var key = ""
+        switch site.aiProvider {
+        case "OpenAI", "OpenRouter":
+            key = site.openAIKey
+        case "Anthropic":
+            key = site.anthropicKey
+        case "Gemini":
+            key = site.geminiKey
+        case "Ollama":
+            key = "" // Ollama doesn't need a key
+        default:
+            key = site.openAIKey
+        }
         
         // DEBUG: Log what we're sending
         print("🚀 [Polish] Starting Polish with AI...")
@@ -850,6 +887,14 @@ struct ArticleEditorView: View {
             print("❌ [Polish] ERROR: No API key configured!")
             isPolishing = false
             activeAlert = .error("No API key configured for \(site.aiProvider). Go to Site Settings and add your key.")
+            return
+        }
+        
+        // Check if article has content
+        if article.contentHTML.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            print("❌ [Polish] ERROR: No content!")
+            isPolishing = false
+            activeAlert = .error("Article has no content to polish. Please add some content first.")
             return
         }
         

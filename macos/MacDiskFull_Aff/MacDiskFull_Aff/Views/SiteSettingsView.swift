@@ -126,23 +126,68 @@ struct SiteSettingsView: View {
                         }
                     }
                     
-                    // 3. INTEGRATIONS (Compact)
+                    // 3. INTEGRATIONS (AI + Affiliates)
                     FormGroupBox(title: "Integrations") {
-                        // AI
-                        VStack(alignment: .leading, spacing: 8) {
+                        // AI Provider - Full Configuration
+                        VStack(alignment: .leading, spacing: 12) {
                             Text("AI Provider").font(.caption).bold()
-                            HStack {
-                                Picker("", selection: $site.aiProvider) {
-                                    Text("OpenAI").tag("OpenAI")
-                                    Text("OpenRouter").tag("OpenRouter")
-                                    Text("Anthropic").tag("Anthropic")
-                                }.labelsHidden()
-                                
-                                if site.aiProvider == "OpenAI" {
-                                    SecureField("sk-...", text: $site.openAIKey).textFieldStyle(RoundedBorderTextFieldStyle())
-                                } else if site.aiProvider == "Anthropic" {
-                                    SecureField("sk-ant-...", text: $site.anthropicKey).textFieldStyle(RoundedBorderTextFieldStyle())
+                            
+                            Picker("Provider", selection: $site.aiProvider) {
+                                Text("OpenAI").tag("OpenAI")
+                                Text("OpenRouter").tag("OpenRouter")
+                                Text("Anthropic").tag("Anthropic")
+                                Text("Gemini").tag("Gemini")
+                                Text("Ollama (Local)").tag("Ollama")
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            
+                            // API Key field based on provider
+                            Group {
+                                switch site.aiProvider {
+                                case "OpenAI":
+                                    HStack {
+                                        Text("API Key:").frame(width: 70, alignment: .trailing)
+                                        SecureField("sk-...", text: $site.openAIKey)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                case "OpenRouter":
+                                    HStack {
+                                        Text("API Key:").frame(width: 70, alignment: .trailing)
+                                        SecureField("sk-or-...", text: $site.openAIKey)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                case "Anthropic":
+                                    HStack {
+                                        Text("API Key:").frame(width: 70, alignment: .trailing)
+                                        SecureField("sk-ant-...", text: $site.anthropicKey)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                case "Gemini":
+                                    HStack {
+                                        Text("API Key:").frame(width: 70, alignment: .trailing)
+                                        SecureField("AIza...", text: $site.geminiKey)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                case "Ollama":
+                                    HStack {
+                                        Text("URL:").frame(width: 70, alignment: .trailing)
+                                        TextField("http://localhost:11434", text: $site.ollamaURL)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                default:
+                                    EmptyView()
                                 }
+                            }
+                            
+                            // Model picker
+                            HStack {
+                                Text("Model:").frame(width: 70, alignment: .trailing)
+                                Picker("", selection: $site.aiModel) {
+                                    ForEach(modelsForProvider, id: \.self) { model in
+                                        Text(model).tag(model)
+                                    }
+                                }
+                                .labelsHidden()
                             }
                         }
                         
@@ -266,6 +311,24 @@ struct SiteSettingsView: View {
                 },
                 secondaryButton: .cancel()
             )
+        }
+    }
+    
+    // Model options based on selected provider
+    private var modelsForProvider: [String] {
+        switch site.aiProvider {
+        case "OpenAI":
+            return ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"]
+        case "OpenRouter":
+            return ["openai/gpt-4o", "anthropic/claude-3.5-sonnet", "anthropic/claude-3-opus", "google/gemini-pro-1.5", "meta-llama/llama-3.1-70b-instruct", "mistralai/mistral-large"]
+        case "Anthropic":
+            return ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+        case "Gemini":
+            return ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"]
+        case "Ollama":
+            return ["llama3.1:70b", "llama3.1:8b", "mistral:7b", "codellama:13b", "mixtral:8x7b"]
+        default:
+            return ["gpt-4o"]
         }
     }
     
