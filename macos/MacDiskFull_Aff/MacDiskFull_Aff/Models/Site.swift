@@ -204,6 +204,7 @@ struct Article: Identifiable, Codable {
     
     // SEO & AI Analysis
     var seoScore: Int?
+    var aiQualityScore: Int? // New: Marketing/Engagement Score
     var seoKeywords: [String]?
     var seoAnalysis: String?
     var seoRecommendations: [String]?
@@ -212,7 +213,7 @@ struct Article: Identifiable, Codable {
     // History
     var versionHistory: [ArticleVersion] = []
     
-    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", status: ArticleStatus = .draft, redirectURL: String? = nil, seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil, versionHistory: [ArticleVersion] = []) {
+    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", status: ArticleStatus = .draft, redirectURL: String? = nil, seoScore: Int? = nil, aiQualityScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil, versionHistory: [ArticleVersion] = []) {
         self.id = id
         self.title = title
         self.slug = slug
@@ -224,6 +225,7 @@ struct Article: Identifiable, Codable {
         self.status = status
         self.redirectURL = redirectURL
         self.seoScore = seoScore
+        self.aiQualityScore = aiQualityScore
         self.seoKeywords = seoKeywords
         self.seoAnalysis = seoAnalysis
         self.seoRecommendations = seoRecommendations

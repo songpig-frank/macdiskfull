@@ -747,6 +747,7 @@ struct ArticleEditorView: View {
                          article.summary = result.summary
                          article.contentHTML = result.html
                          article.seoScore = result.seo_score
+                          article.aiQualityScore = result.marketing_score
                          article.seoKeywords = result.keywords
                          article.seoAnalysis = result.analysis
                          article.seoRecommendations = result.recommendations
@@ -845,6 +846,7 @@ struct ArticleEditorView: View {
                      lastAnalysis = analysis
                      // Update article's SEO score
                      article.seoScore = analysis.score
+                      article.aiQualityScore = analysis.marketing_score
                       // Show Visual Scorecard
                       let scorecard = PolishedResult(
                           title: self.article.title, 
@@ -853,6 +855,7 @@ struct ArticleEditorView: View {
                           html: self.article.contentHTML,
                           original_score: 0, 
                           seo_score: analysis.score, 
+                          marketing_score: analysis.marketing_score, 
                           score_breakdown: analysis.score_breakdown, 
                           keywords: [], 
                           analysis: analysis.analysis, 

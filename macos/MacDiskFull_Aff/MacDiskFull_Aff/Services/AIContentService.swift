@@ -22,7 +22,8 @@ struct PolishedResult: Decodable {
     let summary: String // Meta description / Excerpt
     let html: String
     let original_score: Int // Score of the input content
-    let seo_score: Int // Score of the polished content
+    let seo_score: Int // Technical SEO Score
+    let marketing_score: Int // Creative/Marketing Impact Score
     let score_breakdown: [ScoreComponent]? // Detailed breakdown
     let keywords: [String]
     let analysis: String
@@ -157,7 +158,8 @@ class AIContentService {
 
 
     struct ContentAnalysis: Decodable {
-        let score: Int
+        let score: Int // Technical SEO
+        let marketing_score: Int // Creative/Marketing
         let score_breakdown: [ScoreComponent]?
         let analysis: String
         let recommendations: [String]
@@ -169,7 +171,8 @@ class AIContentService {
         Evaluate the following blog post for the website "\(siteName)" (\(siteTagline)).
         Return a JSON object:
         {
-            "score": 0-100,
+            "score": 0-100, // Technical SEO Score
+            "marketing_score": 0-100, // Creative/Marketing Impact Score
             "score_breakdown": [
                 { "criterion": "Title Impact", "score": 15, "max_score": 20, "reasoning": "..." }
             ],
@@ -231,7 +234,8 @@ class AIContentService {
           "slug": "clean-keyword-rich-url-slug",
           "summary": "Compelling meta description (1-2 sentences)",
           "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
-          "seo_score": 95, // The score of your NEW polished version
+          "seo_score": 95, // Technical SEO Score
+          "marketing_score": 92, // Creative/Marketing Impact Score
           "score_breakdown": [
             { "criterion": "Title & Hooks", "score": 9, "max_score": 10, "reasoning": "Great clickability" },
             { "criterion": "Content Depth", "score": 18, "max_score": 20, "reasoning": "Comprehensive" },
@@ -258,7 +262,7 @@ class AIContentService {
 
         Instructions:
         1. **Relevance Check**: The target website is "\(siteName)" (\(siteTagline)). 
-           - If the input content is NOT related to this niche, **SCORE IT 0** in `original_score` and `seo_score`.
+           - If the input content is NOT related to this niche, **SCORE IT 0** in `original_score`, `seo_score`, and `marketing_score`.
            - Do not polish it. Just return the analysis explaining why it is irrelevant.
         2. **Title Magic**: Create a unique, viral title that ranks. 
            - CRITICAL: It MUST NOT be in the "EXISTING TITLES" list.
@@ -274,21 +278,17 @@ class AIContentService {
            - Any meta-commentary about the writing process
            - Markdown headers like "# Title" if they duplicate the title field
         5. **Strict Scoring Logic**: 
-           - You MUST calculate `original_score` and `seo_score` by summing these criteria (Max 20 each):
-             a. Title Impact (0-20): CTR potential & curiosity.
-             b. Uniqueness (0-20): Not generic, specific to niche.
-             c. Keywords (0-20): Semantic density without spamming.
-             d. Structure (0-20): Formatting. *BONUS: `<img>` tags count as PRO structure.*
-             e. Engagement (0-20): Hooks & Voice. *VISUALS (<img>) are critical for high score.*
-           - If `<img>` tags are present (even placeholders), `original_score` should be higher.
-           - Explain the score math in the `analysis`.
+           - **SEO Score** (0-100): Evaluate technical aspects: Keywords, Structure, Length, Metadata, Image Tags.
+           - **Marketing Score** (0-100): Evaluate creative aspects: Engagement, Hooks, Voice, Uniqueness, Viral Potential.
+           - Use the criteria list for `score_breakdown` to support these scores.
+           - If `<img>` tags are missing, BOTH scores should be penalized (Visuals are marketing AND SEO).
         6. **Visuals (CRITICAL)**: 
            - **EXISTING IMAGES**: Preserve exact `<img>` tags. Do not touch them.
            - **MISSING IMAGES**: You MUST insert `<img src="https://placehold.co/600x400/png" alt="PROMPT: Describe image here" />` placeholders where potential images should go.
            - **RULE**: Every 300-400 words (or every major section) NEEDS a visual.
            - **The User doesn't know what images to add - YOU must tell them via these placeholders.**
         7. **Score (REALITY CHECK)**:
-           - **PLACEHOLDERS = LOW SCORE**: If the content contains `placehold.co` or generic placeholders, the `seo_score` MUST NOT exceed 70. Comment: "Replace placeholders with real images to rank."
+           - **PLACEHOLDERS = LOW SCORE**: If the content contains `placehold.co` or generic placeholders, `seo_score` MUST NOT exceed 70. `marketing_score` can be higher if text is excellent. Comment: "Replace placeholders with real images."
            - **REAL IMAGES = HIGH SCORE**: You can only award 90+ if the `<img>` tags point to real, specific image files/URLs (not placeholders).
            - This ensures we grade the *visual reality* of the page, not just the text.
         \(customRules)

@@ -150,12 +150,32 @@ struct PolishedResultComparisonView: View {
                                     .font(.title)
                                     .foregroundColor(.gray)
                                 
-                                VStack {
-                                    Text("\(result.seo_score)")
-                                        .font(.system(size: 48, weight: .heavy))
-                                        .foregroundColor(.green)
-                                    Text("After")
-                                        .font(.caption)
+                                VStack(spacing: 4) {
+                                    HStack(spacing: 16) {
+                                        VStack(spacing: 0) {
+                                            Text("\(result.seo_score)")
+                                                .font(.system(size: 36, weight: .heavy))
+                                                .foregroundColor(.green)
+                                            Text("SEO")
+                                                .font(.caption)
+                                                .bold()
+                                                .foregroundColor(.green.opacity(0.8))
+                                        }
+                                        
+                                        Rectangle().frame(width: 1, height: 30).foregroundColor(Color.gray.opacity(0.2))
+                                        
+                                        VStack(spacing: 0) {
+                                            Text("\(result.marketing_score)")
+                                                .font(.system(size: 36, weight: .heavy))
+                                                .foregroundColor(.purple)
+                                            Text("Marketing")
+                                                .font(.caption)
+                                                .bold()
+                                                .foregroundColor(.purple.opacity(0.8))
+                                        }
+                                    }
+                                    Text("Optimized")
+                                        .font(.caption2)
                                         .foregroundColor(.secondary)
                                 }
                             }
