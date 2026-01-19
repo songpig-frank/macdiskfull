@@ -85,6 +85,32 @@ class AIContentService {
                 completion(.failure(error))
             }
         }
+    func polishArticle(contentHTML: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<String, Error>) -> Void) {
+        
+        let systemPrompt = "You are a professional expert editor. Output refined HTML content only. Do not wrap in ```html."
+        let userPrompt = """
+        Polish and improve the format of the following blog post content.
+        
+        Instructions:
+        1. Remove any intro/outro text like "Here is the article" or "Sure, I can help".
+        2. Remove any "Sources" lists or citations unless embedded naturally.
+        3. Ensure proper header hierarchy (H2, H3).
+        4. Make paragraphs short and readable.
+        5. Insert relevant placeholder images using this format: <img src="https://placehold.co/600x400?text=Topic+Name" alt="Topic Name" />
+        
+        Content:
+        \(contentHTML.prefix(25000))
+        """
+        
+        generateRaw(prompt: userPrompt, system: systemPrompt, provider: provider, apiKey: apiKey, model: model, endpointURL: endpointURL) { result in
+             switch result {
+             case .success(let content):
+                  let clean = content.replacingOccurrences(of: "```html", with: "").replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                  completion(.success(clean))
+             case .failure(let error):
+                  completion(.failure(error))
+             }
+        }
     }
     
     // Unified Backend

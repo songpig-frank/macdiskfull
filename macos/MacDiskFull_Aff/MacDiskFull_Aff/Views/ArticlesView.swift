@@ -92,7 +92,7 @@ struct ArticlesView: View {
             set: { editingArticleId = $0?.uuid }
         )) { wrappedId in
             if let index = site.articles.firstIndex(where: { $0.id == wrappedId.uuid }) {
-                ArticleEditorView(article: $site.articles[index]) {
+                ArticleEditorView(site: $site, article: $site.articles[index]) {
                     editingArticleId = nil
                 }
                 .frame(minWidth: 1000, minHeight: 800)
@@ -240,9 +240,11 @@ struct WrappedUUID: Identifiable {
 }
 
 struct ArticleEditorView: View {
+    @Binding var site: Site
     @Binding var article: Article
     var onClose: () -> Void
     @State private var selectedTab: Int = 0
+    @State private var isPolishing: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -252,7 +254,19 @@ struct ArticleEditorView: View {
                 Text(selectedTab == 0 ? "Edit Article" : "Preview")
                     .font(.title2)
                     .fontWeight(.bold)
+                
                 Spacer()
+                
+                if isPolishing {
+                    ProgressView("Polishing...")
+                        .scaleEffect(0.8)
+                } else {
+                    Button(action: polishContent) {
+                        Label("Polish with AI", systemImage: "wand.and.stars")
+                    }
+                    .help("Refine formatting and remove meta-text using AI")
+                }
+                
                 Button("Done") {
                     onClose()
                 }
@@ -320,6 +334,31 @@ struct ArticleEditorView: View {
             }
         }
         // Removed navigationTitle modifier as we have a custom header
+    }
+    
+    func polishContent() {
+        isPolishing = true
+        var key = site.openAIKey
+        if site.aiProvider == "Anthropic" { key = site.anthropicKey }
+        
+        AIContentService.shared.polishArticle(
+            contentHTML: article.contentHTML,
+            apiKey: key,
+            provider: site.aiProvider,
+            model: site.aiModel,
+            endpointURL: site.ollamaURL
+        ) { result in
+            DispatchQueue.main.async {
+                isPolishing = false
+                switch result {
+                case .success(let refined):
+                    article.contentHTML = refined
+                case .failure(let error):
+                    print("Polish error: \(error.localizedDescription)")
+                    // Optional: Show alert
+                }
+            }
+        }
     }
     
     func generatePreviewHTML(_ article: Article) -> String {
