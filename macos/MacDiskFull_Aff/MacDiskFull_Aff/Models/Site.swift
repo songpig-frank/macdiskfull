@@ -117,6 +117,8 @@ struct Site: Identifiable, Codable {
     var name: String
     var tagline: String
     var domain: String           // For SEO canonical URLs (optional)
+    var logoURL: String?         // Site logo image URL
+    var faviconURL: String?      // Favicon image URL
     var theme: SiteTheme
     var affiliateSettings: AffiliateSettings
     var products: [Product]

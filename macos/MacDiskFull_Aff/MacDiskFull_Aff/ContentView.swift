@@ -291,6 +291,52 @@ struct SiteSettingsView: View {
                     .onChange(of: site.domain) { _ in onSave() }
                 }
                 
+                // Branding - Logo & Favicon
+                GroupBox(label: Label("Branding", systemImage: "photo")) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Logo and favicon for your site. Use URLs to images (PNG, SVG, or ICO).")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        LabeledTextField(label: "Logo URL", text: Binding(
+                            get: { site.logoURL ?? "" },
+                            set: { site.logoURL = $0.isEmpty ? nil : $0 }
+                        ), placeholder: "https://example.com/logo.png")
+                        
+                        LabeledTextField(label: "Favicon URL", text: Binding(
+                            get: { site.faviconURL ?? "" },
+                            set: { site.faviconURL = $0.isEmpty ? nil : $0 }
+                        ), placeholder: "https://example.com/favicon.ico")
+                        
+                        // Preview (if URLs exist)
+                        HStack(spacing: 20) {
+                            if let logoURL = site.logoURL, !logoURL.isEmpty {
+                                VStack {
+                                    AsyncImage(url: URL(string: logoURL)) { image in
+                                        image.resizable().aspectRatio(contentMode: .fit)
+                                    } placeholder: {
+                                        Image(systemName: "photo").foregroundColor(.gray)
+                                    }
+                                    .frame(width: 80, height: 40)
+                                    Text("Logo").font(.caption2).foregroundColor(.secondary)
+                                }
+                            }
+                            if let faviconURL = site.faviconURL, !faviconURL.isEmpty {
+                                VStack {
+                                    AsyncImage(url: URL(string: faviconURL)) { image in
+                                        image.resizable().aspectRatio(contentMode: .fit)
+                                    } placeholder: {
+                                        Image(systemName: "photo").foregroundColor(.gray)
+                                    }
+                                    .frame(width: 32, height: 32)
+                                    Text("Favicon").font(.caption2).foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                }
+                
                 // Theme (MVP: Just primary color)
                 GroupBox(label: Label("Theme", systemImage: "paintbrush")) {
                     VStack(alignment: .leading, spacing: 16) {
