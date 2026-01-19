@@ -24,6 +24,7 @@ struct ContentView: View {
         case siteSettings = "Site Settings"
         case products = "Products"
         case articles = "Articles"
+        case legalPages = "Legal Pages"
         case preview = "Preview"
         case generate = "Generate"
     }
@@ -70,6 +71,9 @@ struct ContentView: View {
                     Label("Articles", systemImage: "doc.text")
                         .tag(SidebarSection.articles)
                     
+                    Label("Legal Pages", systemImage: "doc.text.below.ecg")
+                        .tag(SidebarSection.legalPages)
+                    
                     Label("Preview", systemImage: "eye")
                         .tag(SidebarSection.preview)
                     
@@ -109,6 +113,8 @@ struct ContentView: View {
             ProductsView(store: store)
         case .articles:
             ArticlesView(site: $store.site)
+        case .legalPages:
+            LegalPagesView(site: $store.site)
         case .preview:
             PreviewView(store: store)
         case .generate:

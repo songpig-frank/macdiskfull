@@ -33,10 +33,11 @@ struct PolishedResultComparisonView: View {
                 
                 Picker("", selection: $viewMode) {
                     Text("Code Diff").tag(0)
+                    Text("Enhanced Diff").tag(2)
                     Text("Visual Preview").tag(1)
                 }
                 .pickerStyle(SegmentedPickerStyle())
-                .frame(width: 200)
+                .frame(width: 280)
                 
                 Spacer()
                 
@@ -112,32 +113,37 @@ struct PolishedResultComparisonView: View {
             Divider()
             
             // Comparison
-            HSplitView {
-                VStack(alignment: .leading) {
-                    Text("Original (Before)").font(.caption).bold().padding(.leading)
-                    if viewMode == 0 {
-                        TextEditor(text: .constant(originalHTML))
-                            .font(.system(.body, design: .monospaced))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        WebView(html: generatePreview(html: originalHTML))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if viewMode == 2 {
+                // Enhanced side-by-side with synced scrolling
+                SyncedDiffView(originalContent: originalHTML, polishedContent: result.html)
+            } else {
+                HSplitView {
+                    VStack(alignment: .leading) {
+                        Text("Original (Before)").font(.caption).bold().padding(.leading)
+                        if viewMode == 0 {
+                            TextEditor(text: .constant(originalHTML))
+                                .font(.system(.body, design: .monospaced))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            WebView(html: generatePreview(html: originalHTML))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }
-                }
-                .layoutPriority(1)
-                
-                VStack(alignment: .leading) {
-                    Text("Polished (After)").font(.caption).bold().padding(.leading)
-                    if viewMode == 0 {
-                        TextEditor(text: .constant(result.html))
-                            .font(.system(.body, design: .monospaced))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        WebView(html: generatePreview(html: result.html))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .layoutPriority(1)
+                    
+                    VStack(alignment: .leading) {
+                        Text("Polished (After)").font(.caption).bold().padding(.leading)
+                        if viewMode == 0 {
+                            TextEditor(text: .constant(result.html))
+                                .font(.system(.body, design: .monospaced))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            WebView(html: generatePreview(html: result.html))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }
+                    .layoutPriority(1)
                 }
-                .layoutPriority(1)
             }
             
             Divider()
@@ -252,5 +258,151 @@ struct ComparisonRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .lineLimit(3)
         }
+    }
+}
+
+// MARK: - Synced Diff View (Enhanced)
+
+struct SyncedDiffView: View {
+    let originalContent: String
+    let polishedContent: String
+    
+    @State private var scrollOffset: CGFloat = 0
+    @State private var showDiffHighlights = true
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Toolbar
+            HStack {
+                Toggle("Highlight Changes", isOn: $showDiffHighlights)
+                    .toggleStyle(.switch)
+                Spacer()
+                Text("\(originalLines.count) lines → \(polishedLines.count) lines")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Side by side
+            GeometryReader { geo in
+                HStack(spacing: 1) {
+                    // Left: Original
+                    VStack(spacing: 0) {
+                        HStack {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(.secondary)
+                            Text("Original")
+                                .font(.caption.bold())
+                            Spacer()
+                            Text("\(originalContent.count) chars")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(6)
+                        .background(Color.red.opacity(0.1))
+                        
+                        ScrollView {
+                            DiffTextContent(
+                                lines: originalLines,
+                                comparisonLines: polishedLines,
+                                isOriginal: true,
+                                showHighlights: showDiffHighlights
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .background(Color(NSColor.textBackgroundColor))
+                    }
+                    .frame(width: geo.size.width / 2 - 1)
+                    
+                    // Divider
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 2)
+                    
+                    // Right: Polished
+                    VStack(spacing: 0) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.accentColor)
+                            Text("Polished")
+                                .font(.caption.bold())
+                            Spacer()
+                            Text("\(polishedContent.count) chars")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(6)
+                        .background(Color.green.opacity(0.1))
+                        
+                        ScrollView {
+                            DiffTextContent(
+                                lines: polishedLines,
+                                comparisonLines: originalLines,
+                                isOriginal: false,
+                                showHighlights: showDiffHighlights
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .background(Color(NSColor.textBackgroundColor))
+                    }
+                    .frame(width: geo.size.width / 2 - 1)
+                }
+            }
+        }
+    }
+    
+    private var originalLines: [String] {
+        originalContent.components(separatedBy: .newlines)
+    }
+    
+    private var polishedLines: [String] {
+        polishedContent.components(separatedBy: .newlines)
+    }
+}
+
+struct DiffTextContent: View {
+    let lines: [String]
+    let comparisonLines: [String]
+    let isOriginal: Bool
+    let showHighlights: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
+                HStack(spacing: 4) {
+                    // Line number
+                    Text("\(index + 1)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, alignment: .trailing)
+                    
+                    // Content
+                    Text(line.isEmpty ? " " : line)
+                        .font(.system(size: 11, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.vertical, 1)
+                .padding(.horizontal, 4)
+                .background(lineBackground(for: line))
+            }
+        }
+        .padding(4)
+    }
+    
+    private func lineBackground(for line: String) -> Color {
+        guard showHighlights else { return .clear }
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return .clear }
+        
+        let inComparison = comparisonLines.contains { $0.trimmingCharacters(in: .whitespaces) == trimmed }
+        
+        if !inComparison {
+            return isOriginal ? Color.red.opacity(0.15) : Color.green.opacity(0.15)
+        }
+        return .clear
     }
 }

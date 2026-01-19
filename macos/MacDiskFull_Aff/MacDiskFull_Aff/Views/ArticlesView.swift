@@ -404,14 +404,36 @@ struct ArticleEditorView: View {
     @State private var showImageAssistant: Bool = false
     @State private var isAnalyzing: Bool = false
     @State private var lastAnalysis: AIContentService.ContentAnalysis? = nil
+    @State private var showNoImagesWarning: Bool = false
+    
+    // Detect if article has real images (not placeholders)
+    private var hasRealImages: Bool {
+        let html = article.contentHTML.lowercased()
+        let hasImg = html.contains("<img")
+        let isPlaceholder = html.contains("placehold.co") || html.contains("placeholder")
+        return hasImg && !isPlaceholder
+    }
+    
+    private var imageStatus: (icon: String, color: Color, label: String) {
+        let html = article.contentHTML.lowercased()
+        if !html.contains("<img") {
+            return ("photo.badge.plus", .orange, "No Images")
+        } else if html.contains("placehold.co") || html.contains("placeholder") {
+            return ("photo.badge.exclamationmark", .yellow, "Placeholders")
+        } else {
+            return ("photo.badge.checkmark", .green, "Has Images")
+        }
+    }
     
     enum ActiveAlert: Identifiable {
         case error(String)
         case analysis(AIContentService.ContentAnalysis)
+        case noImagesWarning
         var id: String {
             switch self {
             case .error: return "error"
             case .analysis: return "analysis"
+            case .noImagesWarning: return "noImagesWarning"
             }
         }
     }
@@ -445,18 +467,50 @@ struct ArticleEditorView: View {
                         ProgressView("Analyzing...")
                             .scaleEffect(0.8)
                     } else {
-                        Button(action: analyzeContent) {
-                            Label("Check Score", systemImage: "chart.bar")
+                        // Image Status Indicator
+                        HStack(spacing: 4) {
+                            Image(systemName: imageStatus.icon)
+                                .foregroundColor(imageStatus.color)
+                            Text(imageStatus.label)
+                                .font(.caption)
+                                .foregroundColor(imageStatus.color)
                         }
-                        .help("Evaluate current SEO score without changes")
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(imageStatus.color.opacity(0.1))
+                        .cornerRadius(6)
                         
-                        Button(action: polishContent) {
-                            Label("Polish with AI", systemImage: "wand.and.stars")
-                        }
+                        Divider().frame(height: 20)
                         
+                        // 1. IMAGE MAGIC (First priority)
                         Button(action: { showImageAssistant = true }) {
                             Label("Image Magic", systemImage: "photo.on.rectangle")
                         }
+                        .help("Add or generate images for this article")
+                        
+                        // 2. CHECK SEO SCORE (with warning if no images)
+                        Button(action: {
+                            if !hasRealImages {
+                                activeAlert = .noImagesWarning
+                            } else {
+                                analyzeContent()
+                            }
+                        }) {
+                            Label("Check Score", systemImage: "chart.bar")
+                        }
+                        .help("Evaluate current SEO score")
+                        
+                        // 3. POLISH WITH AI
+                        Button(action: {
+                            if !hasRealImages {
+                                activeAlert = .noImagesWarning
+                            } else {
+                                polishContent()
+                            }
+                        }) {
+                            Label("Polish with AI", systemImage: "wand.and.stars")
+                        }
+                        .help("AI-powered content optimization")
                         
                         Button("Done", action: onClose)
                     }
@@ -733,6 +787,17 @@ struct ArticleEditorView: View {
                      message: Text((analysis.analysis) + "\n\nRecommendations:\n" + (analysis.recommendations.joined(separator: "\n- "))),
                      dismissButton: .default(Text("OK"))
                  )
+            case .noImagesWarning:
+                return Alert(
+                    title: Text("⚠️ Missing Images"),
+                    message: Text("This article doesn't have any images yet. SEO scores and AI polishing work better with real images. Would you like to add images first?"),
+                    primaryButton: .default(Text("Add Images")) {
+                        showImageAssistant = true
+                    },
+                    secondaryButton: .cancel(Text("Continue Anyway")) {
+                        analyzeContent()
+                    }
+                )
             }
         }
     }

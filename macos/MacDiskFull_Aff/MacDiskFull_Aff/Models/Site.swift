@@ -287,6 +287,7 @@ struct Site: Identifiable, Codable {
     var affiliateSettings: AffiliateSettings
     var products: [Product]
     var articles: [Article] // New: Blog Articles
+    var legalPages: [LegalPage] = [] // Legal pages with version control
     var optimizationRules: String = "Focus on E-E-A-T (Experience, Expertise, Authoritativeness, and Trustworthiness). Prioritize answer targets for AI search."
     
     // New: Contact & Legal (Optional for backward compatibility)
@@ -331,6 +332,7 @@ struct Site: Identifiable, Codable {
         legal: LegalSettings = LegalSettings(),
         products: [Product] = [],
         articles: [Article] = [],
+        legalPages: [LegalPage] = [],
         optimizationRules: String = "Focus on E-E-A-T (Experience, Expertise, Authoritativeness, and Trustworthiness). Prioritize answer targets for AI search.",
         logoShape: LogoShape = .horizontal,
         logoDecoration: LogoDecoration = .none,
@@ -356,6 +358,7 @@ struct Site: Identifiable, Codable {
         self._legal = legal
         self.products = products
         self.articles = articles
+        self.legalPages = legalPages
         self.optimizationRules = optimizationRules
         self.logoShape = logoShape
         self.logoDecoration = logoDecoration
