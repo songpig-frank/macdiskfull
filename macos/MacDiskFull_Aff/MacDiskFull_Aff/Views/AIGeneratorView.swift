@@ -195,11 +195,17 @@ struct AIGeneratorView: View {
                             Text("Transcript / Notes")
                             Spacer()
                             if !videoTitle.isEmpty {
-                                Button("Fetch Transcript (Smart)") { fetchTranscriptSmart() }
-                                    .font(.caption)
-                                    .padding(4)
-                                    .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(4)
+                                HStack {
+                                    if fetchStatus.contains("Empty") || fetchStatus.contains("Error") {
+                                        Button("View Raw") { showingRawData = true }
+                                            .font(.caption).foregroundColor(.red)
+                                    }
+                                    Button("Fetch Transcript (Smart)") { fetchTranscriptSmart() }
+                                        .font(.caption)
+                                        .padding(4)
+                                        .background(Color.blue.opacity(0.1))
+                                        .cornerRadius(4)
+                                }
                             }
                         }
                         TextEditor(text: $transcript)
@@ -208,6 +214,9 @@ struct AIGeneratorView: View {
                         Text("Tip: Go to the video, open description, click 'Show Transcript', then copy/paste here.")
                             .font(.caption).foregroundColor(.secondary)
                     }
+                }
+                .alert(isPresented: $showingRawData) {
+                    Alert(title: Text("Raw Transcript Data"), message: Text(lastRawResponse.prefix(500)), dismissButton: .default(Text("Close")))
                 }
                 
                 Section {
@@ -447,36 +456,38 @@ struct AIGeneratorView: View {
         }.resume()
     }
     
+    @State private var lastRawResponse = ""
+    @State private var showingRawData = false
+
     func fetchCaptionXML(url: URL) {
+        print("Fetching Captions from: \(url.absoluteString)")
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data, let content = String(data: data, encoding: .utf8) else { return }
             
+            print("RAW CAPTION DATA (\(content.count) chars): \(content.prefix(500))...")
+            DispatchQueue.main.async { self.lastRawResponse = content }
+            
             var fullText = ""
             
-            // Format 1: JSON (Common in modern YouTube)
+            // Format 1: JSON
             if content.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") {
-                // Try Parse JSON
                 if let jsonData = content.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
                    let events = json["events"] as? [[String: Any]] {
-                    
                     for event in events {
                         if let segs = event["segs"] as? [[String: Any]] {
                             for seg in segs {
-                                if let text = seg["utf8"] as? String {
-                                    fullText += text
-                                }
+                                if let text = seg["utf8"] as? String { fullText += text }
                             }
-                            fullText += " " // Space between events
+                            fullText += " "
                         }
                     }
                 }
             } else {
-                // Format 2: XML (Legacy)
+                // Format 2: XML
                  do {
                     let regex = try NSRegularExpression(pattern: "<text.*?>(.*?)</text>", options: [])
                     let matches = regex.matches(in: content, range: NSRange(content.startIndex..., in: content))
-                    
                     for match in matches {
                         if let r = Range(match.range(at: 1), in: content) {
                             let text = String(content[r])
@@ -486,16 +497,12 @@ struct AIGeneratorView: View {
                             fullText += text + " "
                         }
                     }
-                } catch {
-                     DispatchQueue.main.async { self.fetchStatus = "Regex Fail" }
-                }
+                } catch { }
             }
             
             DispatchQueue.main.async {
                 if fullText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    // Debug: Show what we actually got
-                    let snippet = String(content.prefix(50)).replacingOccurrences(of: "\n", with: " ")
-                    self.fetchStatus = "Empty. Raw: \(snippet)..."
+                    self.fetchStatus = "Empty. Tap to View Raw."
                 } else {
                     self.transcript = fullText
                     self.fetchStatus = "Success! (Native)"
