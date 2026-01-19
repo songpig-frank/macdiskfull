@@ -92,7 +92,18 @@ struct AIGeneratorView: View {
                     }
                 }
                 
-                Section(header: Text("Step 2: Source Info")) {
+                Section(header: HStack {
+                    Text("Step 2: Source Info")
+                    Spacer()
+                    Button("Debug: Fill Sample") {
+                        self.urlString = "https://www.youtube.com/watch?v=jfKfPfyJRdk" // Lofi Girl (Always alive)
+                        self.videoTitle = "lofi hip hop radio - beats to relax/study to"
+                        self.videoChannel = "Lofi Girl"
+                        self.videoDate = "2024-01-01"
+                        self.transcript = "[SAMPLE TRANSCRIPT]\nIn this video, we listen to relaxing beats. The music is chill, lo-fi hip hop. It is great for studying and working. The stream runs 24/7. (This is a sample to prove the AI Writer works)."
+                    }
+                    .font(.caption)
+                }) {
                     TextField("YouTube URL", text: $urlString)
                     HStack {
                         Button("Fetch Info") { fetchInfo() }
