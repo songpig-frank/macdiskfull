@@ -294,6 +294,15 @@ class AIContentService {
            - **PLACEHOLDERS = LOW SCORE**: If the content contains `placehold.co` or generic placeholders, `seo_score` MUST NOT exceed 70. `marketing_score` can be higher if text is excellent. Comment: "Replace placeholders with real images."
            - **REAL IMAGES = HIGH SCORE**: You can only award 90+ if the `<img>` tags point to real, specific image files/URLs (not placeholders).
            - This ensures we grade the *visual reality* of the page, not just the text.
+        
+        8. **Dual Optimization Strategy (MANDATORY)**:
+           - **For SEO**: Integrate target keywords naturally in headers (H2/H3) and first 100 words. Ensure >800 words for depth.
+           - **For AI Visibility (GEO)**: 
+             - **Direct Answers**: Start sections with clear definitions (e.g. "X is Y") for Featured Snippets/LLM pickup.
+             - **Structure**: Use Bullet Points/Tables heavily. LLMs cite structured data 40% more often.
+             - **Fact Density**: Remove fluff. State facts clearly.
+           - **Conflict Resolution**: If SEO wants length but AI wants conciseness, use a **"Direct Answer" box/paragraph** followed by the detailed SEO explanation.
+           
         \(customRules)
         
         Content:
