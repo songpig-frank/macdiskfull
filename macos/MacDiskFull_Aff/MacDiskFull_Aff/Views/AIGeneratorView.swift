@@ -107,21 +107,38 @@ struct AIGeneratorView: View {
                     
                     if !searchResults.isEmpty {
                         List(searchResults) { video in
-                            Button(action: { selectVideo(video) }) {
+                            HStack(spacing: 12) {
                                 VStack(alignment: .leading) {
-                                    Text(video.title).font(.headline)
-                                    HStack {
-                                        Text(video.channel).font(.subheadline).bold()
-                                        Spacer()
-                                        Text(video.published).font(.caption).foregroundColor(.secondary)
-                                    }
-                                    Text("Verified Transcript Available").font(.caption2).foregroundColor(.green)
+                                    Text(video.title)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .lineLimit(2)
+                                    Text(video.channel)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(.vertical, 4)
+                                
+                                Spacer()
+                                
+                                // Open in Browser
+                                Button(action: {
+                                    if let url = URL(string: video.url) { NSWorkspace.shared.open(url) }
+                                }) {
+                                    Image(systemName: "safari")
+                                        .foregroundColor(.blue)
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                                .help("Open in Browser")
+                                
+                                // Select Button
+                                Button("Use This") {
+                                    selectVideo(video)
+                                }
+                                .buttonStyle(BorderedProminentButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .padding(.vertical, 4)
                         }
-                        .frame(height: 200)
+                        .frame(height: 250)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.2)))
                     }
                     
                     Link(destination: URL(string: "https://www.youtube.com/results?search_query=\(topic.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")!) {
