@@ -97,7 +97,7 @@ class AIContentService {
         }
 
 
-    func polishArticle(contentHTML: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
+    func polishArticle(contentHTML: String, customRules: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
         
         let systemPrompt = "You are an elite SEO & AI Optimization Expert. Output valid JSON only."
         
@@ -118,6 +118,9 @@ class AIContentService {
         3. **Snippets**: Bold direct answers.
         4. **Visuals**: Use <img src="https://placehold.co/600x400?text=Scan+Mac" alt="Scan Mac" />
         5. **Conflict Protocol**: If AI readability conflicts with SEO keyword density, prioritize **Human/AI Readability** (User Experience) as modern algorithms penalize stuffing.
+        
+        DYNAMIC ENGINE RULES (User-Defined):
+        \(customRules)
         
         Content:
         \(contentHTML.prefix(25000))

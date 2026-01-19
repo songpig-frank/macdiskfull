@@ -411,6 +411,7 @@ struct ArticleEditorView: View {
         
         AIContentService.shared.polishArticle(
             contentHTML: article.contentHTML,
+            customRules: site.optimizationRules,
             apiKey: key,
             provider: site.aiProvider,
             model: site.aiModel,

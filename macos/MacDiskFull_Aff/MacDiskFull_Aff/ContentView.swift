@@ -306,6 +306,23 @@ struct SiteSettingsView: View {
                     .onChange(of: site.theme.primaryColor) { _ in onSave() }
                 }
                 
+                // SEO Optimization Engine Rules
+                GroupBox(label: Label("AI Optimization Engine Rules", systemImage: "brain.head.profile")) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Define current SEO logic and AI ranking factors to guide the Polish engine.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        TextEditor(text: $site.optimizationRules)
+                            .font(.system(.body, design: .monospaced))
+                            .frame(minHeight: 120)
+                            .padding(4)
+                            .background(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                            .onChange(of: site.optimizationRules) { _ in onSave() }
+                    }
+                    .padding()
+                }
+                
                 // Affiliate Networks
                 GroupBox(label: Label("Affiliate Networks", systemImage: "link.badge.plus")) {
                     VStack(alignment: .leading, spacing: 12) {

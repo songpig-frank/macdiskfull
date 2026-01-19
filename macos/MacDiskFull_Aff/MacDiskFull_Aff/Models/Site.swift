@@ -131,6 +131,7 @@ struct Site: Identifiable, Codable {
         affiliateSettings: AffiliateSettings = AffiliateSettings(),
         products: [Product] = [],
         articles: [Article] = [],
+        optimizationRules: String = "Focus on E-E-A-T (Experience, Expertise, Authoritativeness, and Trustworthiness). Prioritize answer targets for AI search.",
         usePrettyLinks: Bool = true,
         generateLegalPages: Bool = true,
         aiProvider: String = "OpenAI",
@@ -150,6 +151,7 @@ struct Site: Identifiable, Codable {
         self.affiliateSettings = affiliateSettings
         self.products = products
         self.articles = articles
+        self.optimizationRules = optimizationRules
         self.usePrettyLinks = usePrettyLinks
         self.generateLegalPages = generateLegalPages
         self.aiProvider = aiProvider
