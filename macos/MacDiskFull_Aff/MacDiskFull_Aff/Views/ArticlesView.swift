@@ -320,6 +320,37 @@ struct ArticleEditorView: View {
                                             .font(.caption)
                                             .foregroundColor(.blue)
                                     }
+                                    
+                                    if let recommendations = article.seoRecommendations, !recommendations.isEmpty {
+                                        Divider()
+                                        Text("Path to 100%").font(.caption.bold())
+                                        ForEach(recommendations, id: \.self) { rec in
+                                            HStack(alignment: .top) {
+                                                Image(systemName: "circle").font(.system(size: 8))
+                                                    .padding(.top, 4)
+                                                Text(rec).font(.caption).foregroundColor(.secondary)
+                                            }
+                                        }
+                                    }
+                                    
+                                    if let conflict = article.seoConflictResolution {
+                                        Divider()
+                                        HStack(alignment: .top) {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .foregroundColor(.orange)
+                                                .font(.caption)
+                                            VStack(alignment: .leading) {
+                                                Text("Expert Verdict").font(.caption.bold())
+                                                Text(conflict)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                    .fixedSize(horizontal: false, vertical: true)
+                                            }
+                                        }
+                                        .padding(4)
+                                        .background(Color.orange.opacity(0.1))
+                                        .cornerRadius(4)
+                                    }
                                 }
                                 .padding(8)
                             }
@@ -393,6 +424,8 @@ struct ArticleEditorView: View {
                     article.seoScore = refined.seo_score
                     article.seoKeywords = refined.keywords
                     article.seoAnalysis = refined.analysis
+                    article.seoRecommendations = refined.recommendations
+                    article.seoConflictResolution = refined.conflict_resolution
                 case .failure(let error):
                     print("Polish error: \(error.localizedDescription)")
                     // Optional: Show alert

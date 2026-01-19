@@ -13,6 +13,8 @@ struct PolishedResult: Decodable {
     let seo_score: Int
     let keywords: [String]
     let analysis: String
+    let recommendations: [String] // Steps to reach 100%
+    let conflict_resolution: String // Advice if SEO and AI conflict
 }
 
 class AIContentService {
@@ -92,6 +94,9 @@ class AIContentService {
                 completion(.failure(error))
             }
         }
+        }
+    }
+
     func polishArticle(contentHTML: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
         
         let systemPrompt = "You are an elite SEO & AI Optimization Expert. Output valid JSON only."
@@ -102,14 +107,17 @@ class AIContentService {
           "html": "The refined clean HTML body content (no <html> tags)",
           "seo_score": 85, // 0-100 score based on optimization quality
           "keywords": ["keyword1", "keyword2"], // 5-10 potential heavy-hitter keywords
-          "analysis": "Short explanation of what was improved and why."
+          "analysis": "Short explanation of what was improved and why.",
+          "recommendations": ["Step 1: Add more backlinks", "Step 2: Increase word count"], // Specific steps to reach 100% perfection
+          "conflict_resolution": "If SEO rules (keywords) conflict with AI rules (natural flow), prioritize [Verdict] because [Reason]."
         }
 
-        Instructions for 'html':
+        Instructions:
         1. **Strip Chatter**: Remove "Here is the article", "Sources", etc.
         2. **Semantic**: Use H2/H3.
         3. **Snippets**: Bold direct answers.
         4. **Visuals**: Use <img src="https://placehold.co/600x400?text=Scan+Mac" alt="Scan Mac" />
+        5. **Conflict Protocol**: If AI readability conflicts with SEO keyword density, prioritize **Human/AI Readability** (User Experience) as modern algorithms penalize stuffing.
         
         Content:
         \(contentHTML.prefix(25000))

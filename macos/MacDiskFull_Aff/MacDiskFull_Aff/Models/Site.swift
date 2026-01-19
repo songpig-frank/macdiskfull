@@ -58,8 +58,10 @@ struct Article: Identifiable, Codable {
     var seoScore: Int?         // 0-100
     var seoKeywords: [String]?
     var seoAnalysis: String?
+    var seoRecommendations: [String]?
+    var seoConflictResolution: String?
     
-    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil) {
+    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil) {
         self.id = id
         self.title = title
         self.slug = slug
@@ -71,6 +73,8 @@ struct Article: Identifiable, Codable {
         self.seoScore = seoScore
         self.seoKeywords = seoKeywords
         self.seoAnalysis = seoAnalysis
+        self.seoRecommendations = seoRecommendations
+        self.seoConflictResolution = seoConflictResolution
     }
 }
 
