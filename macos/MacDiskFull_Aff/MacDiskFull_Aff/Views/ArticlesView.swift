@@ -488,13 +488,9 @@ struct ArticleEditorView: View {
                         }
                         .help("Add or generate images for this article")
                         
-                        // 2. CHECK SEO SCORE (with warning if no images)
+                        // 2. CHECK SEO SCORE
                         Button(action: {
-                            if !hasRealImages {
-                                activeAlert = .noImagesWarning
-                            } else {
-                                analyzeContent()
-                            }
+                            analyzeContent()
                         }) {
                             Label("Check Score", systemImage: "chart.bar")
                         }
@@ -502,11 +498,7 @@ struct ArticleEditorView: View {
                         
                         // 3. POLISH WITH AI
                         Button(action: {
-                            if !hasRealImages {
-                                activeAlert = .noImagesWarning
-                            } else {
-                                polishContent()
-                            }
+                            polishContent()
                         }) {
                             Label("Polish with AI", systemImage: "wand.and.stars")
                         }
