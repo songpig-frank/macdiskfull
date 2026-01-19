@@ -507,10 +507,12 @@ struct ArticleEditorView: View {
                 )
             }
         }
-        .alert("Polish Error", isPresented: $showPolishError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(polishError ?? "Unknown error")
+        .alert(isPresented: $showPolishError) {
+            Alert(
+                title: Text("Polish Error"),
+                message: Text(polishError ?? "Unknown error"),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
     
