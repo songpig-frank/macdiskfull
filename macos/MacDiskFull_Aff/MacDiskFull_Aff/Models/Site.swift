@@ -212,6 +212,197 @@ extension Site {
         ],
         articles: [
             Article(
+                title: "Mac Disk Full? Do This First (Fast Checklist That Works)",
+                slug: "mac-disk-full-do-this-first",
+                summary: "If your Mac says “Your disk is almost full,” don’t panic. Follow this checklist to reclaim space in 10–30 minutes without breaking macOS.",
+                contentHTML: """
+                <p><em>Last updated: January 2026</em></p>
+                <p>If your Mac says “Your disk is almost full,” don’t panic and don’t start randomly deleting things. The fastest way to fix a full drive is to follow a short checklist in the right order—so you reclaim space quickly <em>without breaking anything important</em>.</p>
+                <p>This guide gives you a safe “do this first” process. Most people can free up space in 10–30 minutes, even if they’re not techy.</p>
+                <p><em>Disclosure: Some links may be affiliate links. If you buy through them, we may earn a commission at no extra cost to you.</em></p>
+                <hr>
+                <h2>The 60-second plan (do these in order)</h2>
+                <ol>
+                <li>Check what’s actually using space (built-in Storage view)</li>
+                <li>Empty Trash (and delete old installers)</li>
+                <li>Clear the biggest easy wins (Downloads, videos, DMGs, ZIPs)</li>
+                <li>Find and remove large files <em>safely</em> (preview-first)</li>
+                <li>If you’re still tight: deal with “System Data” and pro-app caches</li>
+                <li>Move large libraries to an external drive (optional)</li>
+                </ol>
+                <p>Then, if you want to make this easier next time, use a <em>visual</em> disk cleanup tool that helps you spot the junk faster than Finder.</p>
+                <hr>
+                <h2>Step 1: Confirm how much space you actually have</h2>
+                <p>Before deleting anything, check your current free space so you know what “success” looks like.</p>
+                <h3>macOS Ventura / Sonoma / Sequoia (modern macOS)</h3>
+                <ol>
+                <li>Open <em>System Settings</em></li>
+                <li>Click <em>General</em></li>
+                <li>Click <em>Storage</em></li>
+                </ol>
+                <p>You’ll see categories like Applications, Documents, Photos, System Data, etc.</p>
+                <h3>Older macOS</h3>
+                <ol>
+                <li>Click the Apple menu</li>
+                <li>Choose <em>About This Mac</em></li>
+                <li>Click <em>Storage</em></li>
+                </ol>
+                <p><em>Goal:</em> If you can get back to at least <strong>15–25 GB free</strong>, your Mac will behave better (updates, swaps, performance).</p>
+                <hr>
+                <h2>Step 2: Empty Trash (and remove the “fake deletes”)</h2>
+                <p>This is obvious, but it matters: moving files to Trash doesn’t free space until you empty it.</p>
+                <ol>
+                <li>Right-click <em>Trash</em> (Dock)</li>
+                <li>Click <em>Empty Trash</em></li>
+                </ol>
+                <p>Now do this too (it’s the hidden “why is my disk still full?” issue):</p>
+                <h3>Delete big installers you don’t need</h3>
+                <p>Common space hogs:</p>
+                <ul>
+                <li><code>.dmg</code> installer files (apps you already installed)</li>
+                <li><code>.pkg</code> installers</li>
+                <li><code>.zip</code> archives</li>
+                <li>iOS firmware files you downloaded</li>
+                <li>old “Photos Library copy” files</li>
+                </ul>
+                <p>Where they usually live:</p>
+                <ul>
+                <li><em>Downloads</em></li>
+                <li><em>Desktop</em></li>
+                <li>random folders named “Installers”</li>
+                </ul>
+                <p><em>Tip:</em> If you see a DMG you installed weeks ago, you can usually delete it.</p>
+                <hr>
+                <h2>Step 3: Clear the biggest “easy win” folders first</h2>
+                <p>These are the places that fill up on almost every Mac:</p>
+                <h3>A) Downloads</h3>
+                <p>Open Finder → <em>Downloads</em>. Then sort by size:</p>
+                <ol>
+                <li>In Finder, open <em>Downloads</em></li>
+                <li>Click the “list view” icon (four lines)</li>
+                <li>Choose <em>View → Show View Options</em></li>
+                <li>Turn on <em>Calculate all sizes</em> (if available)</li>
+                <li>Click the <em>Size</em> column to sort</li>
+                </ol>
+                <p>Delete:</p>
+                <ul>
+                <li>old DMGs / ZIPs</li>
+                <li>videos you no longer need</li>
+                <li>duplicates (“file (1).zip”, “file (2).zip”)</li>
+                </ul>
+                <h3>B) Desktop</h3>
+                <p>People forget the Desktop counts as real storage. Remove:</p>
+                <ul>
+                <li>duplicate images</li>
+                <li>screen recordings</li>
+                <li>old work exports</li>
+                <li>long ZIPs and DMGs</li>
+                </ul>
+                <h3>C) Your Movies folder (especially screen recordings)</h3>
+                <p>Finder → <em>Movies</em>. Look for:</p>
+                <ul>
+                <li>Screen recordings</li>
+                <li>Old exports from video editors</li>
+                <li>Huge clips you already uploaded</li>
+                </ul>
+                <h3>D) Messages attachments (if you get lots of photos/videos)</h3>
+                <p>This can get huge. In Storage, look for “Messages” if it appears and review attachments.</p>
+                <hr>
+                <h2>Step 4: Find large files safely (without deleting system stuff)</h2>
+                <p>If your Mac is truly full, you need to locate the largest files and confirm what they are before deleting.</p>
+                <h3>The safe method (Finder search)</h3>
+                <ol>
+                <li>Open Finder</li>
+                <li>Press <code>Command + F</code></li>
+                <li>Set search to “This Mac”</li>
+                <li>Add a filter like <em>File Size is greater than 500 MB</em> (or 1 GB)</li>
+                </ol>
+                <p>Then review large items one by one.</p>
+                <p><em>What to delete safely:</em></p>
+                <ul>
+                <li>Old exported videos you don’t need</li>
+                <li>Duplicate downloads</li>
+                <li>Old installers (DMG/PKG)</li>
+                <li>ISO files</li>
+                <li>Old project exports you already backed up</li>
+    </ul>
+                <p><em>What NOT to delete if you’re not sure:</em></p>
+                <ul>
+                <li>Anything in <em>System</em> folders</li>
+                <li>Random folders you don’t recognize inside Library</li>
+                <li>Anything labeled as macOS-related</li>
+                </ul>
+                <p>If you’re unsure, move it to a “To Review” folder first instead of deleting.</p>
+                <hr>
+                <h2>Step 5: The big culprits most people miss</h2>
+                <p>These categories are where space mysteriously disappears.</p>
+                <h3>A) “System Data” is huge</h3>
+                <p>System Data includes caches, logs, app support files, and more. It’s not all “bad”—but it can grow out of control.</p>
+                <p>If System Data is huge:</p>
+                <ul>
+                <li>Restart your Mac (yes, really)</li>
+                <li>Empty Trash</li>
+                <li>Clear obvious app caches (see below)</li>
+                <li>Remove old iPhone backups (if you have them)</li>
+                <li>For creators: clear pro-app caches carefully</li>
+                </ul>
+                <h3>B) iPhone / iPad backups</h3>
+                <p>If you back up devices locally, backups can take 5–50 GB each.</p>
+                <p>Where to check: Finder → click your iPhone in the sidebar → Manage Backups (varies by macOS).</p>
+                <h3>C) Photo library and duplicates</h3>
+                <p>Photos can be massive. If you use iCloud Photos, your Mac may still store a lot locally.</p>
+                <p>A simple choice: If your library is huge and you trust iCloud, set Photos to <em>Optimize Mac Storage</em>.</p>
+                <h3>D) Pro apps (video and audio) cache files</h3>
+                <p>Typical offenders: Video editor render files, Proxy media, Audio sample libraries.</p>
+                <p>If you’re a creator and you’re constantly full, skip ahead to the “Creator quick wins” section below.</p>
+                <hr>
+                <h2>Step 6: Creator quick wins (Final Cut, DaVinci, Premiere, Logic, plugins)</h2>
+                <p>If you do audio/video work, your SSD gets eaten by “invisible” files.</p>
+                <h3>Video editing: common space hogs</h3>
+                <ul>
+                <li>Render files</li>
+                <li>Cache files</li>
+                <li>Proxy media</li>
+                <li>Optimized media</li>
+                <li>Old project exports</li>
+                </ul>
+                <p><em>Safe idea:</em> Clear cache inside the app’s settings (preferred) rather than digging through Library folders manually.</p>
+                <h3>Audio production: common space hogs</h3>
+                <ul>
+                <li>Sample libraries</li>
+                <li>Plugin installers</li>
+                <li>Project backups</li>
+                <li>Duplicate takes</li>
+                </ul>
+                <p><em>Best practice:</em> Put sample libraries on an external SSD and keep only active projects on the internal drive.</p>
+                <hr>
+                <h2>Step 7: Move large libraries to an external drive (the long-term fix)</h2>
+                <p>If your Mac has a small internal drive, cleanup alone may not be enough long-term.</p>
+                <p>Good candidates to move:</p>
+                <ul>
+                <li>Photos Library (advanced users only; do carefully)</li>
+                <li>iMovie / Final Cut Libraries</li>
+                <li>DAW sample libraries</li>
+                <li>Large video project folders</li>
+                <li>Old archives</li>
+                </ul>
+                <p>Use a fast external SSD for best results.</p>
+                <p><em>Important:</em> Don’t move random system folders. Stick to your own files and libraries.</p>
+                <hr>
+                <h2>When Finder feels too slow: use a visual cleanup tool (optional)</h2>
+                <p>Finder works, but it can be slow and tedious when you’re stressed and low on space. A good visual disk tool can help you:</p>
+                <ul>
+                <li>see big files instantly</li>
+                <li>find duplicates and junk faster</li>
+                <li>safely preview what you’re deleting</li>
+                <li>avoid deleting the wrong thing</li>
+                </ul>
+                <p>If you want a <em>no-subscription</em> option, GetDiskSpace is designed for quick “what is taking space?” answers plus a preview-first cleanup flow. (Disclosure: we may earn a commission if you purchase through our link.)</p>
+                <p><em>Important:</em> Whatever tool you use, the key is <em>preview-first</em> and <em>non-destructive workflows</em>.</p>
+                """,
+                author: "MacDiskFull Team"
+            ),
+            Article(
                 title: "Why the 256GB Mac Mini M4 is a Storage Trap (And How to Fix It)",
                 slug: "mac-mini-m4-storage-problem",
                 summary: "Apple's base model storage hasn't budged, but your file sizes have. Here is why the 256GB Mac Mini M4 is a bottleneck for performance and longevity.",
