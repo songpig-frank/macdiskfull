@@ -231,7 +231,7 @@ struct ArticlesView: View {
     }
 }
 
-}
+
 
 // UUID wrapper for Sheet .item
 struct WrappedUUID: Identifiable {
