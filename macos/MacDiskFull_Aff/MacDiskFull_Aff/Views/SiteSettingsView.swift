@@ -148,11 +148,11 @@ struct SiteSettingsView: View {
                             Text("AI Provider").font(.caption).bold()
                             
                             Picker("Provider", selection: $site.aiProvider) {
-                                Text("OpenAI").tag("OpenAI")
-                                Text("OpenRouter").tag("OpenRouter")
-                                Text("Anthropic").tag("Anthropic")
-                                Text("Gemini").tag("Gemini")
-                                Text("Ollama (Local)").tag("Ollama")
+                                Text("OpenAI" + (!site.openAIKey.isEmpty ? " ✓" : "")).tag("OpenAI")
+                                Text("OpenRouter" + ((site.openRouterKey != nil && !site.openRouterKey!.isEmpty) ? " ✓" : "")).tag("OpenRouter")
+                                Text("Anthropic" + (!site.anthropicKey.isEmpty ? " ✓" : "")).tag("Anthropic")
+                                Text("Gemini" + (!site.geminiKey.isEmpty ? " ✓" : "")).tag("Gemini")
+                                Text("Ollama" + (!site.ollamaURL.isEmpty ? " ✓" : "")).tag("Ollama")
                             }
                             .pickerStyle(SegmentedPickerStyle())
                             
@@ -160,28 +160,71 @@ struct SiteSettingsView: View {
                             Group {
                                 switch site.aiProvider {
                                 case "OpenAI":
-                                    HStack {
-                                        Text("API Key:").frame(width: 70, alignment: .trailing)
-                                        SecureField("sk-...", text: $site.openAIKey)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text("API Key:").frame(width: 70, alignment: .trailing)
+                                            SecureField("sk-...", text: $site.openAIKey)
+                                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        }
+                                        HStack {
+                                            Text("Endpoint:").frame(width: 70, alignment: .trailing)
+                                            TextField("Default (api.openai.com)", text: Binding(
+                                                get: { site.openAIBaseURL ?? "" },
+                                                set: { site.openAIBaseURL = $0.isEmpty ? nil : $0 }
+                                            ))
                                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        }
                                     }
                                 case "OpenRouter":
-                                    HStack {
-                                        Text("API Key:").frame(width: 70, alignment: .trailing)
-                                        SecureField("sk-or-...", text: $site.openAIKey)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text("API Key:").frame(width: 70, alignment: .trailing)
+                                            SecureField("sk-or-...", text: Binding(
+                                                get: { site.openRouterKey ?? "" },
+                                                set: { site.openRouterKey = $0 }
+                                            ))
                                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        }
+                                        HStack {
+                                             Text("Endpoint:").frame(width: 70, alignment: .trailing)
+                                             TextField("Default (openrouter.ai)", text: Binding(
+                                                 get: { site.openRouterBaseURL ?? "" },
+                                                 set: { site.openRouterBaseURL = $0.isEmpty ? nil : $0 }
+                                             ))
+                                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                                         }
                                     }
                                 case "Anthropic":
-                                    HStack {
-                                        Text("API Key:").frame(width: 70, alignment: .trailing)
-                                        SecureField("sk-ant-...", text: $site.anthropicKey)
-                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text("API Key:").frame(width: 70, alignment: .trailing)
+                                            SecureField("sk-ant-...", text: $site.anthropicKey)
+                                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        }
+                                        HStack {
+                                             Text("Endpoint:").frame(width: 70, alignment: .trailing)
+                                             TextField("Default (api.anthropic.com)", text: Binding(
+                                                 get: { site.anthropicBaseURL ?? "" },
+                                                 set: { site.anthropicBaseURL = $0.isEmpty ? nil : $0 }
+                                             ))
+                                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                                         }
                                     }
                                 case "Gemini":
-                                    HStack {
-                                        Text("API Key:").frame(width: 70, alignment: .trailing)
-                                        SecureField("AIza...", text: $site.geminiKey)
-                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text("API Key:").frame(width: 70, alignment: .trailing)
+                                            SecureField("AIza...", text: $site.geminiKey)
+                                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        }
+                                        HStack {
+                                             Text("Endpoint:").frame(width: 70, alignment: .trailing)
+                                             TextField("Default (generativelanguage.googleapis.com)", text: Binding(
+                                                 get: { site.geminiBaseURL ?? "" },
+                                                 set: { site.geminiBaseURL = $0.isEmpty ? nil : $0 }
+                                             ))
+                                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                                         }
                                     }
                                 case "Ollama":
                                     HStack {
@@ -194,16 +237,34 @@ struct SiteSettingsView: View {
                                 }
                             }
                             
-                            // Model picker
+                            Divider()
+                            Text("Model Configuration").font(.caption).bold()
+                            
+                            // Writer Model
                             HStack {
-                                Text("Model:").frame(width: 70, alignment: .trailing)
+                                Text("Writer:").frame(width: 70, alignment: .trailing)
                                 Picker("", selection: $site.aiModel) {
                                     ForEach(modelsForProvider, id: \.self) { model in
                                         Text(model).tag(model)
                                     }
                                 }
                                 .labelsHidden()
+                                Text("(High Quality)").font(.caption).foregroundColor(.secondary)
                             }
+                            .help("Model used for writing and polishing content (e.g. GPT-4o, Claude 3.5 Sonnet)")
+                            
+                            // Analyzer Model
+                            HStack {
+                                Text("Analyzer:").frame(width: 70, alignment: .trailing)
+                                Picker("", selection: $site.analyzerModel) {
+                                    ForEach(modelsForProvider, id: \.self) { model in
+                                        Text(model).tag(model)
+                                    }
+                                }
+                                .labelsHidden()
+                                Text("(Fast/Cheap)").font(.caption).foregroundColor(.secondary)
+                            }
+                            .help("Model used for checking scores and scanning compatibility (e.g. GPT-4o-mini, Haiku)")
                         }
                         
                         Divider()

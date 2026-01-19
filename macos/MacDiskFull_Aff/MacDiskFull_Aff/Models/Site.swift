@@ -334,10 +334,24 @@ struct Site: Identifiable, Codable {
     var usePrettyLinks: Bool
     var generateLegalPages: Bool
     var aiProvider: String = "OpenAI" // "OpenAI", "OpenRouter", "Anthropic", "Gemini", "Ollama"
-    var aiModel: String = "gpt-4o"
+    var aiModel: String = "gpt-4o" // Primary Writer Model
+    var _analyzerModel: String? // Optional specific model for analysis
+    var analyzerModel: String {
+        get { _analyzerModel ?? aiModel }
+        set { _analyzerModel = newValue }
+    }
     var openAIKey: String = ""
+    var openAIBaseURL: String? = nil // Optional override
+    
+    var openRouterKey: String? = nil
+    var openRouterBaseURL: String? = nil // Optional override
+    
     var anthropicKey: String = ""
+    var anthropicBaseURL: String? = nil // Optional override
+    
     var geminiKey: String = ""
+    var geminiBaseURL: String? = nil // Optional override
+    
     var ollamaURL: String = "http://localhost:11434"
     
     var createdAt: Date

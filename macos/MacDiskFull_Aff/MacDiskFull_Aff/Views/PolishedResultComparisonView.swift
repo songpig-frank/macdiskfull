@@ -104,7 +104,7 @@ struct PolishedResultComparisonView: View {
                                 .foregroundColor(.red)
                                 
                                 // Divider
-                                Rectangle().frame(width: 1).foregroundColor(Color.gray.opacity(0.2))
+                                Rectangle().frame(width: 4).foregroundColor(Color.gray.opacity(0.2))
                                 
                                 // Optimized Header
                                 Text("OPTIMIZED")
@@ -194,6 +194,14 @@ struct PolishedResultComparisonView: View {
                                 }
                             }
                             .frame(maxWidth: .infinity)
+                            
+                            // Warning if images added but score low
+                            if result.html.contains("<img") && (result.marketing_score < 70) {
+                                Text("⚠️ Images detected. Analysis scores reflect pre-image state.")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                                    .padding(.top, 4)
+                            }
                             
                             Divider()
                             
@@ -293,9 +301,9 @@ struct PolishedResultComparisonView: View {
                 color: #333;
                 background: white; 
             }
-            .container { display: flex; min-height: 100vh; }
-            .pane { flex: 1; padding: 20px; box-sizing: border-box; border-right: 1px solid #eee; }
-            .pane:last-child { border-right: none; }
+            .container { display: flex; min-height: 100vh; width: 100%; }
+            .pane { flex: 0 0 50%; padding: 20px; box-sizing: border-box; overflow-wrap: break-word; } /* Force 50% split */
+            .pane:first-child { border-right: 4px solid #e5e7eb; } /* Thicker Divider */
             img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
             h1 { font-size: 2em; margin-bottom: 0.5em; line-height: 1.2; }
             h2 { font-size: 1.5em; margin-top: 1.5em; }

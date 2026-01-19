@@ -33,6 +33,37 @@ struct ImageAssistantView: View {
             .padding()
             .background(Color.gray.opacity(0.1))
             
+            // API Key Warning Banner
+            if site.openAIKey.isEmpty || site.openAIKey.hasPrefix("sk-or-") {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                         Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                         Text("OpenAI API Key Required")
+                            .bold()
+                    }
+                    Text("Image Magic (DALL-E 3) requires a direct OpenAI API Key. OpenRouter keys are not supported for this feature.")
+                        .font(.caption)
+                    
+                    HStack {
+                         Link("Get OpenAI Key", destination: URL(string: "https://platform.openai.com/api-keys")!)
+                         .font(.caption)
+                         .foregroundColor(.blue)
+                         
+                         Text("•").foregroundColor(.secondary)
+                         
+                         Text("Add it in Settings")
+                             .font(.caption)
+                             .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.1))
+                .border(Color.orange.opacity(0.3), width: 1)
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
+            
             if isScanning {
                 ProgressView("Scanning for placeholders...")
                     .padding()

@@ -20,7 +20,7 @@ struct PolishedResult: Decodable {
     let title: String
     let slug: String // SEO friendly URL slug
     let summary: String // Meta description / Excerpt
-    let html: String
+    var html: String
     let original_score: Int // Score of the input content
     let seo_score: Int // Technical SEO Score
     let marketing_score: Int // Creative/Marketing Impact Score
@@ -331,8 +331,8 @@ class AIContentService {
 
              case .success(let content):
                   AIContentService.logDebug("[polishArticle] Received content from generateRaw: \(content.count) chars")
-                  print("📥 [AI Raw Response] First 500 chars:")
-                  print(String(content.prefix(500)))
+                  AIContentService.logDebug("📥 [AI Raw Response] (Preview of \(content.count) chars):")
+                  AIContentService.logDebug(String(content.prefix(500)) + "...")
                   
                   // Try to find JSON block
                   var jsonString = content
@@ -373,7 +373,7 @@ class AIContentService {
         }
         
         if provider == "Anthropic" {
-            generateAnthropic(prompt: prompt, system: system, apiKey: apiKey, model: model, completion: completion)
+            generateAnthropic(prompt: prompt, system: system, apiKey: apiKey, model: model, endpointURL: endpointURL, completion: completion)
             return
         }
         
@@ -386,9 +386,9 @@ class AIContentService {
         
         switch provider {
         case "OpenAI":
-            baseURL = "https://api.openai.com/v1/chat/completions"
+            baseURL = !endpointURL.isEmpty ? endpointURL : "https://api.openai.com/v1/chat/completions"
         case "OpenRouter":
-            baseURL = "https://openrouter.ai/api/v1/chat/completions"
+            baseURL = !endpointURL.isEmpty ? endpointURL : "https://openrouter.ai/api/v1/chat/completions"
             headers["HTTP-Referer"] = "https://webmakr.app"
             headers["X-Title"] = "WebMakr"
         case "Ollama":
@@ -470,8 +470,9 @@ class AIContentService {
         }.resume()
     }
     
-    private func generateAnthropic(prompt: String, system: String, apiKey: String, model: String, completion: @escaping (Result<String, Error>) -> Void) {
-        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+    private func generateAnthropic(prompt: String, system: String, apiKey: String, model: String, endpointURL: String, completion: @escaping (Result<String, Error>) -> Void) {
+        let urlString = !endpointURL.isEmpty ? endpointURL : "https://api.anthropic.com/v1/messages"
+        let url = URL(string: urlString)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue(apiKey, forHTTPHeaderField: "x-api-key")
@@ -518,30 +519,26 @@ class AIContentService {
     // MARK: - Image Generation (DALL-E 3)
     
     func generateImage(prompt: String, size: String = "1024x1024", apiKey: String, completion: @escaping (Result<String, Error>) -> Void) {
-        let isOpenRouter = apiKey.hasPrefix("sk-or-")
-        let urlString = isOpenRouter ? "https://openrouter.ai/api/v1/images/generations" : "https://api.openai.com/v1/images/generations"
-        let url = URL(string: urlString)!
+        // block OpenRouter for DALL-E
+        if apiKey.hasPrefix("sk-or-") {
+            completion(.failure(AIError.apiError("OpenRouter keys do NOT support DALL-E 3. Please add a direct OpenAI Key (sk-proj...) in Settings.")))
+            return
+        }
+        
+        let url = URL(string: "https://api.openai.com/v1/images/generations")!
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        if isOpenRouter {
-            request.addValue("https://macdiskfull.com", forHTTPHeaderField: "HTTP-Referer") // Required by OpenRouter
-            request.addValue("WebMakr", forHTTPHeaderField: "X-Title")
-        }
-        
         // DALL-E 3 Request
-        // OpenRouter requires 'openai/dall-e-3', OpenAI requires 'dall-e-3'
-        let model = isOpenRouter ? "openai/dall-e-3" : "dall-e-3"
-        
         let body: [String: Any] = [
-            "model": model,
+            "model": "dall-e-3",
             "prompt": prompt,
             "n": 1,
-            "size": size,
-            "quality": "standard", // or "hd"
+            "size": "1024x1024", // DALL-E 3 supports 1024x1024
+            "quality": "standard",
             "response_format": "url"
         ]
         
@@ -551,6 +548,23 @@ class AIContentService {
         
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            
+            // Validate HTTP Status
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                 var errMsg = "HTTP \(httpResponse.statusCode)"
+                 if let data = data, let str = String(data: data, encoding: .utf8) {
+                     print("🎨 [DALL-E] Error Body: \(str)")
+                     // Try to parse JSON error if possible
+                     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                        let errObj = json["error"] as? [String: Any],
+                        let msg = errObj["message"] as? String {
+                         errMsg += ": \(msg)"
+                     }
+                 }
+                 completion(.failure(AIError.apiError(errMsg)))
+                 return
+            }
+            
             guard let data = data else { completion(.failure(AIError.invalidResponse)); return }
             
             // DEBUG: Print raw response

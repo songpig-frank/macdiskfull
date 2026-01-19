@@ -405,6 +405,7 @@ struct ArticleEditorView: View {
     @State private var isAnalyzing: Bool = false
     @State private var lastAnalysis: AIContentService.ContentAnalysis? = nil
     @State private var showNoImagesWarning: Bool = false
+    @State private var isReviewingPolish: Bool = false // New: Track if fixing images on polished result
     
     // Detect if article has real images (not placeholders)
     private var hasRealImages: Bool {
@@ -483,24 +484,20 @@ struct ArticleEditorView: View {
                         Divider().frame(height: 20)
                         
                         // 1. IMAGE MAGIC (First priority)
-                        Button(action: { showImageAssistant = true }) {
-                            Label("Image Magic", systemImage: "photo.on.rectangle")
+                        HoverButton(title: "Image Magic", icon: "photo.on.rectangle", color: .blue) {
+                            showImageAssistant = true
                         }
                         .help("Add or generate images for this article")
                         
                         // 2. CHECK SEO SCORE
-                        Button(action: {
+                        HoverButton(title: "Check Score", icon: "chart.bar", color: .green) {
                             analyzeContent()
-                        }) {
-                            Label("Check Score", systemImage: "chart.bar")
                         }
                         .help("Evaluate current SEO score")
                         
                         // 3. POLISH WITH AI
-                        Button(action: {
+                        HoverButton(title: "Polish", icon: "wand.and.stars", color: .purple) {
                             polishContent()
-                        }) {
-                            Label("Polish with AI", systemImage: "wand.and.stars")
                         }
                         .help("AI-powered content optimization")
                         
@@ -769,8 +766,23 @@ struct ArticleEditorView: View {
                  .id("comparison-overlay")
             }
         }
-        .sheet(isPresented: $showImageAssistant) {
-            ImageAssistantView(contentHTML: $article.contentHTML, site: site, onClose: { showImageAssistant = false })
+        .sheet(isPresented: $showImageAssistant, onDismiss: {
+            if isReviewingPolish {
+                // Done fixing images? Show comparison now.
+                showComparison = true
+                isReviewingPolish = false
+            }
+        }) {
+            ImageAssistantView(contentHTML: Binding(
+                get: { isReviewingPolish ? (pendingPolishedResult?.html ?? "") : article.contentHTML },
+                set: { val in
+                    if isReviewingPolish {
+                        pendingPolishedResult?.html = val
+                    } else {
+                        article.contentHTML = val
+                    }
+                }
+            ), site: site, onClose: { showImageAssistant = false })
         }
         .alert(item: $activeAlert) { item in
             switch item {
@@ -800,13 +812,22 @@ struct ArticleEditorView: View {
 
     
     func analyzeContent() {
+        AIContentService.logDebug("▶️ [UI] analyzeContent BUTTON CLICKED")
         isAnalyzing = true
+        
+        guard !site.analyzerModel.isEmpty else {
+            activeAlert = .error("No Analyzer Model selected. Please check Site Settings.")
+            isAnalyzing = false
+            return
+        }
         
         // Get the correct API key based on provider
         var key = ""
         switch site.aiProvider {
-        case "OpenAI", "OpenRouter":
+        case "OpenAI":
             key = site.openAIKey
+        case "OpenRouter":
+            key = site.openRouterKey ?? ""
         case "Anthropic":
             key = site.anthropicKey
         case "Gemini":
@@ -817,8 +838,22 @@ struct ArticleEditorView: View {
             key = site.openAIKey
         }
         
+        // Get correct endpoint
+        var endpoint = ""
+        switch site.aiProvider {
+        case "Ollama": endpoint = site.ollamaURL
+        case "OpenAI": endpoint = site.openAIBaseURL ?? ""
+        case "OpenRouter": endpoint = site.openRouterBaseURL ?? ""
+        case "Anthropic": endpoint = site.anthropicBaseURL ?? ""
+        case "Gemini": endpoint = site.geminiBaseURL ?? ""
+        default: break
+        }
+        
+        AIContentService.logDebug("🔑 [UI] Key Length: \(key.count), Provider: \(site.aiProvider)")
+        
         // Check if we have a key (except for Ollama)
         if key.isEmpty && site.aiProvider != "Ollama" {
+            AIContentService.logDebug("❌ [UI] Missing Key Error Triggered")
             activeAlert = .error("No API Key found for \(site.aiProvider). Please configure it in Site Settings.")
             isAnalyzing = false
             return
@@ -837,8 +872,8 @@ struct ArticleEditorView: View {
             siteTagline: site.tagline,
             apiKey: key,
             provider: site.aiProvider,
-            model: site.aiModel,
-            endpointURL: site.ollamaURL
+            model: site.analyzerModel,
+            endpointURL: endpoint
         ) { result in
              DispatchQueue.main.async {
                  isAnalyzing = false
@@ -873,13 +908,22 @@ struct ArticleEditorView: View {
         }
     }
     func polishContent() {
+        AIContentService.logDebug("▶️ [UI] polishContent BUTTON CLICKED")
         isPolishing = true
+        
+        guard !site.aiModel.isEmpty else {
+            activeAlert = .error("No Writer Model selected. Please check Site Settings.")
+            isPolishing = false
+            return
+        }
         
         // Get the correct API key based on provider
         var key = ""
         switch site.aiProvider {
-        case "OpenAI", "OpenRouter":
+        case "OpenAI":
             key = site.openAIKey
+        case "OpenRouter":
+            key = site.openRouterKey ?? ""
         case "Anthropic":
             key = site.anthropicKey
         case "Gemini":
@@ -891,6 +935,17 @@ struct ArticleEditorView: View {
         }
         
         // DEBUG: Log what we're sending
+        // Get correct endpoint
+        var endpoint = ""
+        switch site.aiProvider {
+        case "Ollama": endpoint = site.ollamaURL
+        case "OpenAI": endpoint = site.openAIBaseURL ?? ""
+        case "OpenRouter": endpoint = site.openRouterBaseURL ?? ""
+        case "Anthropic": endpoint = site.anthropicBaseURL ?? ""
+        case "Gemini": endpoint = site.geminiBaseURL ?? ""
+        default: break
+        }
+
         print("🚀 [Polish] Starting Polish with AI...")
         print("🚀 [Polish] Provider: \(site.aiProvider), Model: \(site.aiModel)")
         print("🚀 [Polish] API Key present: \(!key.isEmpty)")
@@ -937,7 +992,7 @@ struct ArticleEditorView: View {
                 apiKey: key,
                 provider: site.aiProvider,
                 model: site.aiModel,
-                endpointURL: site.ollamaURL
+                endpointURL: endpoint
             ) { result in
                 DispatchQueue.main.async {
                     self.isPolishing = false
@@ -946,7 +1001,16 @@ struct ArticleEditorView: View {
                         print("✅ [Polish] Success! Title: \(refined.title)")
                         print("✅ [Polish] Score: \(refined.original_score) → \(refined.seo_score)")
                         self.pendingPolishedResult = refined
-                        self.showComparison = true
+                        
+                        // Check for placeholders in the refined content
+                        if refined.html.contains("placehold.co") {
+                            // Trigger Image Review BEFORE Comparison
+                            self.isReviewingPolish = true
+                            self.showImageAssistant = true
+                        } else {
+                            // Direct to Comparison
+                            self.showComparison = true
+                        }
                     case .failure(let error):
                         print("❌ [Polish] ERROR: \(error.localizedDescription)")
                         self.activeAlert = .error("Polish failed: \(error.localizedDescription)")
@@ -1093,3 +1157,5 @@ struct ArticleEditorView: View {
         """
     }
 }
+
+
