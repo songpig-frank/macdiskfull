@@ -151,27 +151,54 @@ struct ArticlesView: View {
         }
     }
     
-    // Basic formatting from Perplexity/Markdown to App HTML
+    // Advanced parser with YAML Frontmatter support
     func parseMarkdownToArticle(_ rawContent: String, filename: String) -> Article {
-        var lines = rawContent.components(separatedBy: .newlines)
-        
-        // 1. Extract Title (First line if it starts with #, or filename)
         var title = filename.replacingOccurrences(of: "-", with: " ").capitalized
-        if let first = lines.first, first.hasPrefix("# ") {
-            title = String(first.dropFirst(2)).trimmingCharacters(in: .whitespaces)
-            lines.removeFirst() // Remove title from body
-        }
-        
-        // 2. Extract Summary (First paragraph)
+        var slug = filename.lowercased().replacingOccurrences(of: " ", with: "-")
         var summary = "No summary available."
-        // Find first non-empty line
-        if let introIndex = lines.firstIndex(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) {
-            summary = lines[introIndex]
+        var author = "Editorial Team"
+        var contentBody = rawContent
+        
+        // 1. Check for YAML Frontmatter
+        if rawContent.hasPrefix("---") {
+            let components = rawContent.components(separatedBy: "---")
+            if components.count >= 3 {
+                // components[0] is empty (before first ---)
+                // components[1] is the YAML block
+                // components[2...] is the content
+                
+                let yamlBlock = components[1]
+                contentBody = components.dropFirst(2).joined(separator: "---").trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                let yamlLines = yamlBlock.components(separatedBy: .newlines)
+                for line in yamlLines {
+                    let parts = line.split(separator: ":", maxSplits: 1).map { String($0).trimmingCharacters(in: .whitespaces) }
+                    if parts.count == 2 {
+                        let key = parts[0]
+                        var value = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                        
+                        switch key {
+                        case "title": title = value
+                        case "slug": slug = value
+                        case "description": summary = value
+                        case "author": author = value
+                        default: break
+                        }
+                    }
+                }
+            }
+        } else {
+            // Fallback to simple parser if no YAML
+            if let firstLine = rawContent.components(separatedBy: .newlines).first, firstLine.hasPrefix("# ") {
+                 title = String(firstLine.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                 contentBody = String(rawContent.dropFirst(firstLine.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
         }
         
-        // 3. Convert Body to HTML
+        // 2. Convert Body to HTML (Simple Parser)
         var html = ""
         var inList = false
+        var lines = contentBody.components(separatedBy: .newlines)
         
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -182,7 +209,12 @@ struct ArticlesView: View {
             }
             
             // Headers
-            if trimmed.hasPrefix("## ") {
+            if trimmed.hasPrefix("# ") {
+                 // Skip H1 in body if it matches title, otherwise render
+                 // Usually articles shouldn't have H1 in body, but let's handle it
+                 html += "<h1>\(trimmed.dropFirst(2))</h1>\n"
+            }
+            else if trimmed.hasPrefix("## ") {
                 if inList { html += "</ul>\n"; inList = false }
                 html += "<h2>\(trimmed.dropFirst(3))</h2>\n"
             } else if trimmed.hasPrefix("### ") {
@@ -195,17 +227,20 @@ struct ArticlesView: View {
                 let item = trimmed.dropFirst(2)
                 html += "<li>\(processInlineFormatting(String(item)))</li>\n"
             }
-            // Numbered Lists
-            else if trimmed.range(of: "^\\d+\\. ", options: .regularExpression) != nil {
-                 // Simple hack: treat numbered lists as ul for now to avoid complexity, or just wrap in <p> if lazy. 
-                 // Let's standardizes on bullet points for simplicity or implement <ol> logic if strictly needed.
-                 // For now, treat as paragraph line or list item.
-                 html += "<p>\(processInlineFormatting(trimmed))</p>\n"
+            // Horizontal Rule
+            else if trimmed == "---" || trimmed == "***" {
+                 if inList { html += "</ul>\n"; inList = false }
+                 html += "<hr>\n"
             }
             // Paragraphs
             else {
                 if inList { html += "</ul>\n"; inList = false }
-                html += "<p>\(processInlineFormatting(trimmed))</p>\n"
+                // Only wrap in p if it's not a block element (naive check)
+                if !trimmed.hasPrefix("<") {
+                    html += "<p>\(processInlineFormatting(trimmed))</p>\n"
+                } else {
+                    html += trimmed + "\n"
+                }
             }
         }
         
@@ -213,9 +248,10 @@ struct ArticlesView: View {
         
         return Article(
             title: title,
-            slug: title.lowercased().replacingOccurrences(of: " ", with: "-").filter { "abcdefghijklmnopqrstuvwxyz0123456789-".contains($0) },
+            slug: slug,
             summary: summary,
-            contentHTML: html
+            contentHTML: html,
+            author: author
         )
     }
     
