@@ -188,7 +188,8 @@ struct AIGeneratorView: View {
         }
         
         var request = URLRequest(url: url)
-        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.addValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
         
         URLSession.shared.dataTask(with: request) { data, _, _ in
             if let data = data, let html = String(data: data, encoding: .utf8) {
