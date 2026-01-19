@@ -6,6 +6,27 @@
 import SwiftUI
 import WebKit
 
+// Extensions for Premium OS Features
+extension View {
+    @ViewBuilder
+    func premiumGlassBackground() -> some View {
+        if #available(macOS 12.0, *) {
+            self.background(.ultraThinMaterial)
+        } else {
+            self.background(Color(NSColor.windowBackgroundColor))
+        }
+    }
+    
+    @ViewBuilder
+    func premiumSidebarBackground() -> some View {
+        if #available(macOS 12.0, *) {
+            self.background(.regularMaterial)
+        } else {
+            self.background(Color(NSColor.controlBackgroundColor))
+        }
+    }
+}
+
 struct PolishedResultComparisonView: View {
     let originalTitle: String
     let originalSlug: String
@@ -21,16 +42,12 @@ struct PolishedResultComparisonView: View {
     
     // Compute the HTML to display on the left side
     var selectedOriginalHTML: String {
-        // If user selected a specific version, use it
         if let id = selectedVersionID, let ver = history.first(where: { $0.id == id }) {
             return ver.contentHTML
         }
-        // If history exists but nothing selected, default to the FIRST one (True Original)
-        // This solves the user's request to see the "First original" by default
         if let first = history.first {
             return first.contentHTML
         }
-        // Fallback
         return originalHTML
     }
     
@@ -55,7 +72,7 @@ struct PolishedResultComparisonView: View {
                         .frame(width: 300)
                     }
                     .padding()
-                    .background(Color(NSColor.windowBackgroundColor))
+                    .premiumGlassBackground() // Use Glass on macOS 12+
                     .overlay(Rectangle().frame(height: 1).foregroundColor(Color.gray.opacity(0.1)), alignment: .bottom)
                     
                     // Main Content Area
@@ -72,10 +89,6 @@ struct PolishedResultComparisonView: View {
                                             ForEach(history) { ver in
                                                 Text(ver.label).tag(Optional(ver.id))
                                             }
-                                            // Option for the state right before this polish?
-                                            // The 'originalHTML' passed in IS the state right before polish.
-                                            // We can label it "Current State" if it's not in history.
-                                            // But usually we append it to history before showing.
                                         }
                                         .pickerStyle(MenuPickerStyle())
                                         .frame(width: 150)
@@ -124,7 +137,6 @@ struct PolishedResultComparisonView: View {
                             // 1. SCORES
                             HStack(alignment: .center, spacing: 16) {
                                 VStack {
-                                    // Try to find score of selected version
                                     let score = history.first(where: { $0.id == selectedVersionID })?.score ?? 0
                                     Text("\(score)")
                                         .font(.system(size: 32, weight: .bold))
@@ -160,7 +172,12 @@ struct PolishedResultComparisonView: View {
                                             HStack {
                                                 Text(item.criterion).font(.subheadline).bold()
                                                 Spacer()
-                                                Text("\(item.score)/\(item.max_score)").font(.system(.subheadline, design: .monospaced))
+                                                
+                                                if #available(macOS 12.0, *) {
+                                                     Text("\(item.score)/\(item.max_score)").font(.subheadline.monospaced())
+                                                } else {
+                                                     Text("\(item.score)/\(item.max_score)").font(.system(.subheadline, design: .monospaced))
+                                                }
                                             }
                                             ProgressView(value: Double(item.score), total: Double(item.max_score))
                                                 .accentColor(item.score > Int(Double(item.max_score)*0.8) ? .green : .orange)
@@ -211,32 +228,25 @@ struct PolishedResultComparisonView: View {
                             .keyboardShortcut(.cancelAction)
                     }
                     .padding()
-                    .background(Color(NSColor.windowBackgroundColor))
+                    .premiumGlassBackground() // Glass Footer
                     .overlay(Rectangle().frame(height: 1).foregroundColor(Color.gray.opacity(0.1)), alignment: .top)
                 }
                 .frame(width: fullScreen.size.width * 0.25)
-                .background(Color(NSColor.controlBackgroundColor))
+                .premiumSidebarBackground() // Material Sidebar
                 .overlay(Rectangle().frame(width: 1).foregroundColor(Color.gray.opacity(0.2)), alignment: .leading)
             }
         }
         .onAppear {
-            // Select the oldest version by default (True Original)
             if let first = history.first {
                 selectedVersionID = first.id
             }
         }
     }
     
-    // Binding helper for the Picker to handle Optional
     var bindingForSelection: Binding<UUID?> {
-        Binding {
-            selectedVersionID
-        } set: { newVal in
-            selectedVersionID = newVal
-        }
+        Binding { selectedVersionID } set: { selectedVersionID = $0 }
     }
     
-    // HTML Generation
     func generateSplitPreview(left: String, right: String) -> String {
         return """
         <!DOCTYPE html>
@@ -249,16 +259,8 @@ struct PolishedResultComparisonView: View {
                 color: #333;
                 background: white; 
             }
-            .container {
-                display: flex;
-                min-height: 100vh;
-            }
-            .pane {
-                flex: 1;
-                padding: 20px;
-                box-sizing: border-box;
-                border-right: 1px solid #eee;
-            }
+            .container { display: flex; min-height: 100vh; }
+            .pane { flex: 1; padding: 20px; box-sizing: border-box; border-right: 1px solid #eee; }
             .pane:last-child { border-right: none; }
             img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
             h1 { font-size: 2em; margin-bottom: 0.5em; line-height: 1.2; }
@@ -301,7 +303,6 @@ struct PolishedResultComparisonView: View {
     }
 }
 
-// Helpers
 struct ChangeBlock: View {
     let label: String
     let oldVal: String
@@ -333,10 +334,23 @@ struct SyncedDiffView: View {
             Toggle("Highlight Changes", isOn: $showDiffHighlights).padding()
             GeometryReader { geo in
                 HStack(spacing: 1) {
-                    ScrollView { Text(originalContent).font(.system(.caption, design: .monospaced)).padding() }
-                        .frame(width: geo.size.width/2)
-                    ScrollView { Text(polishedContent).font(.system(.caption, design: .monospaced)).padding() }
-                        .frame(width: geo.size.width/2)
+                    ScrollView { 
+                         if #available(macOS 12.0, *) {
+                             Text(originalContent).font(.caption.monospaced()).padding() 
+                         } else {
+                             Text(originalContent).font(.system(.caption, design: .monospaced)).padding() 
+                         }
+                    }
+                    .frame(width: geo.size.width/2)
+                    
+                    ScrollView { 
+                         if #available(macOS 12.0, *) {
+                             Text(polishedContent).font(.caption.monospaced()).padding() 
+                         } else {
+                             Text(polishedContent).font(.system(.caption, design: .monospaced)).padding() 
+                         }
+                    }
+                    .frame(width: geo.size.width/2)
                 }
             }
         }
