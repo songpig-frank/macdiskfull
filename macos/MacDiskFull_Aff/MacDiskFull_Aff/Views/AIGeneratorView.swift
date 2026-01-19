@@ -449,34 +449,57 @@ struct AIGeneratorView: View {
     
     func fetchCaptionXML(url: URL) {
         URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data, let xml = String(data: data, encoding: .utf8) else { return }
+            guard let data = data, let content = String(data: data, encoding: .utf8) else { return }
             
-            // Simple Regex Parse of XML
-            do {
-                let regex = try NSRegularExpression(pattern: "<text.*?>(.*?)</text>", options: [])
-                let matches = regex.matches(in: xml, range: NSRange(xml.startIndex..., in: xml))
-                
-                var fullText = ""
-                for match in matches {
-                    if let r = Range(match.range(at: 1), in: xml) {
-                        let text = String(xml[r])
-                            .replacingOccurrences(of: "&#39;", with: "'")
-                            .replacingOccurrences(of: "&quot;", with: "\"")
-                            .replacingOccurrences(of: "&amp;", with: "&")
-                        fullText += text + " "
+            var fullText = ""
+            
+            // Format 1: JSON (Common in modern YouTube)
+            if content.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") {
+                // Try Parse JSON
+                if let jsonData = content.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+                   let events = json["events"] as? [[String: Any]] {
+                    
+                    for event in events {
+                        if let segs = event["segs"] as? [[String: Any]] {
+                            for seg in segs {
+                                if let text = seg["utf8"] as? String {
+                                    fullText += text
+                                }
+                            }
+                            fullText += " " // Space between events
+                        }
                     }
                 }
-                
-                DispatchQueue.main.async {
-                    if fullText.isEmpty {
-                        self.fetchStatus = "Transcript empty."
-                    } else {
-                        self.transcript = fullText
-                        self.fetchStatus = "Success! (Native)"
+            } else {
+                // Format 2: XML (Legacy)
+                 do {
+                    let regex = try NSRegularExpression(pattern: "<text.*?>(.*?)</text>", options: [])
+                    let matches = regex.matches(in: content, range: NSRange(content.startIndex..., in: content))
+                    
+                    for match in matches {
+                        if let r = Range(match.range(at: 1), in: content) {
+                            let text = String(content[r])
+                                .replacingOccurrences(of: "&#39;", with: "'")
+                                .replacingOccurrences(of: "&quot;", with: "\"")
+                                .replacingOccurrences(of: "&amp;", with: "&")
+                            fullText += text + " "
+                        }
                     }
+                } catch {
+                     DispatchQueue.main.async { self.fetchStatus = "Regex Fail" }
                 }
-            } catch {
-                DispatchQueue.main.async { self.fetchStatus = "XML Parse Error" }
+            }
+            
+            DispatchQueue.main.async {
+                if fullText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    // Debug: Show what we actually got
+                    let snippet = String(content.prefix(50)).replacingOccurrences(of: "\n", with: " ")
+                    self.fetchStatus = "Empty. Raw: \(snippet)..."
+                } else {
+                    self.transcript = fullText
+                    self.fetchStatus = "Success! (Native)"
+                }
             }
         }.resume()
     }
