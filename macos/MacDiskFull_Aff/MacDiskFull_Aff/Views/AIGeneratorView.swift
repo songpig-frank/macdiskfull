@@ -17,6 +17,7 @@ struct AIGeneratorView: View {
     @State private var errorMessage = ""
     @State private var connectionStatus = ""
     @State private var isTestingInfo = false
+    @State private var fetchStatus = ""
     
     var body: some View {
         VStack(spacing: 0) {
@@ -94,9 +95,12 @@ struct AIGeneratorView: View {
                 Section(header: Text("Step 2: Source Info")) {
                     TextField("YouTube URL", text: $urlString)
                     HStack {
-                        Button("Fetch Title") { fetchInfo() }
+                        Button("Fetch Info") { fetchInfo() }
                             .disabled(urlString.isEmpty)
-                        if !videoTitle.isEmpty {
+                        Text(fetchStatus)
+                            .font(.caption)
+                            .foregroundColor(fetchStatus.contains("Fail") || fetchStatus.contains("hidden") ? .orange : .gray)
+                        if !videoTitle.isEmpty && fetchStatus.isEmpty {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                         }
                     }
@@ -168,30 +172,38 @@ struct AIGeneratorView: View {
         }
     }
     
+
     func fetchInfo() {
+        fetchStatus = "Fetching metadata..."
+        
         // Convert Shorts URL to Watch URL for better scraping
         var targetURLString = urlString
         if urlString.contains("/shorts/") {
             targetURLString = urlString.replacingOccurrences(of: "/shorts/", with: "/watch?v=")
         }
         
-        guard let url = URL(string: targetURLString) else { return }
+        guard let url = URL(string: targetURLString) else {
+            fetchStatus = "Invalid URL"
+            return
+        }
         
         var request = URLRequest(url: url)
-        // Pretend to be a browser to avoid generic "YouTube" title
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
         
         URLSession.shared.dataTask(with: request) { data, _, _ in
             if let data = data, let html = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
+                    var foundMeta = false
+                    
                     // 1. Fetch Title
                     if let range = html.range(of: "<title>(.*?)</title>", options: .regularExpression) {
                         let raw = String(html[range])
                         let clean = raw.replacingOccurrences(of: "<title>", with: "").replacingOccurrences(of: " - YouTube</title>", with: "").replacingOccurrences(of: "</title>", with: "")
                         self.videoTitle = clean
+                        foundMeta = true
                     }
                     
-                    // 2. Fetch Channel Name (<link itemprop="name" content="...">)
+                    // 2. Fetch Channel
                     if let range = html.range(of: "<link itemprop=\"name\" content=\"(.*?)\"", options: .regularExpression) {
                         let raw = String(html[range])
                         if let content = raw.components(separatedBy: "content=\"").last?.dropLast() {
@@ -199,7 +211,7 @@ struct AIGeneratorView: View {
                         }
                     }
                     
-                    // 3. Fetch Date (<meta itemprop="datePublished" content="...">)
+                    // 3. Fetch Date
                     if let range = html.range(of: "<meta itemprop=\"datePublished\" content=\"(.*?)\"", options: .regularExpression) {
                         let raw = String(html[range])
                         if let content = raw.components(separatedBy: "content=\"").last?.dropLast() {
@@ -207,35 +219,42 @@ struct AIGeneratorView: View {
                         }
                     }
                     
-                    // 4. Try Fetch Transcript (Advanced)
-                    // Look for "captionTracks" inside the JSON blob
+                    if foundMeta {
+                        self.fetchStatus = "Metadata found. Checking for transcript..."
+                    } else {
+                        self.fetchStatus = "Could not parse page (YouTube blocking?)"
+                    }
+                    
+                    // 4. Try Fetch Transcript
+                    var transcriptFound = false
                     if let range = html.range(of: "\"captionTracks\":\\[\\{\"baseUrl\":\"(.*?)\"", options: .regularExpression) {
                         let match = String(html[range])
-                        // Extract URL
                         if let urlStart = match.components(separatedBy: "\"baseUrl\":\"").last {
-                            // Decode JSON unicode escapes (e.g. \u0026 -> &)
-                            let urlString = urlStart.replacingOccurrences(of: "\\u0026", with: "&")
-                                                    .replacingOccurrences(of: "\\", with: "") // unescape backslashes
+                            let urlString = urlStart.replacingOccurrences(of: "\\u0026", with: "&").replacingOccurrences(of: "\\", with: "")
                             
                             if let captionURL = URL(string: urlString) {
                                 print("Found Caption URL: \(captionURL)")
                                 self.fetchTranscriptXML(url: captionURL)
+                                transcriptFound = true
                             }
                         }
                     }
+                    
+                    if !transcriptFound && foundMeta {
+                         self.fetchStatus = "Data found. Transcript hidden/auto-generated (Copy Manually)."
+                    }
                 }
+            } else {
+                DispatchQueue.main.async { self.fetchStatus = "Network Error" }
             }
         }.resume()
     }
     
     func fetchTranscriptXML(url: URL) {
+        self.fetchStatus = "Downloading captions..."
         URLSession.shared.dataTask(with: url) { data, _, _ in
             if let data = data, let xml = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
-                    // Simple Regex to extract text from <text start="..." dur="...">Hello World</text>
-                    // Remove tags
-                    // Decode HTML entities (&amp; -> &)
-                    
                     do {
                         let regex = try NSRegularExpression(pattern: "<text.*?>(.*?)</text>", options: [])
                         let matches = regex.matches(in: xml, options: [], range: NSRange(location: 0, length: xml.count))
@@ -253,9 +272,12 @@ struct AIGeneratorView: View {
                         
                         if !fullText.isEmpty {
                             self.transcript = fullText
+                            self.fetchStatus = "Success: Transcript extracted!"
+                        } else {
+                            self.fetchStatus = "Captions found but empty."
                         }
                     } catch {
-                        print("Regex Error")
+                        self.fetchStatus = "Caption parse error."
                     }
                 }
             }
