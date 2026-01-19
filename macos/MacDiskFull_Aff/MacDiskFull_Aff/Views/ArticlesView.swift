@@ -195,6 +195,9 @@ struct ArticlesView: View {
             }
         }
         
+        // 1.5 Strip AI Artifacts from content
+        contentBody = stripAIArtifacts(contentBody)
+        
         // 2. Convert Body to HTML (Simple Parser)
         var html = ""
         var inList = false
@@ -264,6 +267,45 @@ struct ArticlesView: View {
         // Link [Title](url)
         res = res.replacingOccurrences(of: "\\[(.*?)\\]\\((.*?)\\)", with: "<a href=\"$2\">$1</a>", options: .regularExpression)
         return res
+    }
+    
+    /// Remove common AI chatbot artifacts from imported content
+    func stripAIArtifacts(_ content: String) -> String {
+        var cleaned = content
+        
+        // Patterns that indicate AI conversation chatter (case-insensitive line removal)
+        let artifactPatterns = [
+            "(?i)^.*here is the article.*$",
+            "(?i)^.*here's the article.*$",
+            "(?i)^.*here is a.*article.*$",
+            "(?i)^.*i hope this helps.*$",
+            "(?i)^.*let me know if you need.*$",
+            "(?i)^.*feel free to.*$",
+            "(?i)^.*please let me know.*$",
+            "(?i)^sure!.*$",
+            "(?i)^certainly!.*$",
+            "(?i)^of course!.*$",
+            "(?i)^absolutely!.*$",
+            "(?i)^.*as an ai.*$",
+            "(?i)^.*as a language model.*$",
+            "(?i)^sources:.*$",
+            "(?i)^references:.*$",
+            "(?i)^citations:.*$",
+            "(?i)^\\[sources\\].*$",
+            "(?i)^note:.*ai.*$",
+            "(?i)^\\*\\*note:\\*\\*.*$"
+        ]
+        
+        for pattern in artifactPatterns {
+            cleaned = cleaned.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+        
+        // Remove multiple consecutive blank lines
+        while cleaned.contains("\n\n\n") {
+            cleaned = cleaned.replacingOccurrences(of: "\n\n\n", with: "\n\n")
+        }
+        
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

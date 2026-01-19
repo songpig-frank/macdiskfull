@@ -120,10 +120,17 @@ class AIContentService {
 
         Instructions:
         1. **Title Magic**: Create a title that triggers curiosity AND ranks for the main topic.
-        2. **Evaluate First**: honestly score the provided content based on SEO best practices.
-        3. **Optimize**: Rewrite to improve score to 90+.
-        4. **Strip Chatter**: Remove intro/outro.
-        5. **Visuals**: Add <img ... placeholders.
+        2. **REMOVE ALL AI ARTIFACTS**: Delete any of these patterns:
+           - "Here is the article...", "Here's a...", "I've written..."
+           - "I hope this helps!", "Let me know if you need..."
+           - "Sources:", "References:", "Citations:"
+           - "Sure!", "Certainly!", "Of course!"
+           - "As an AI...", "As a language model..."
+           - Any meta-commentary about the writing process
+           - Markdown headers like "# Title" if they duplicate the title field
+        3. **Evaluate First**: Score the INPUT content (0-100) before your changes.
+        4. **Optimize**: Rewrite to score 90+.
+        5. **Visuals**: Add <img src="https://placehold.co/600x400?text=..." alt="..." /> placeholders.
         
         DYNAMIC ENGINE RULES (User-Defined):
         \(customRules)
