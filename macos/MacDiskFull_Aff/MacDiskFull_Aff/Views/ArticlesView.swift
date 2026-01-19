@@ -734,12 +734,13 @@ struct ArticleEditorView: View {
                      .onTapGesture { }
                      .transition(.opacity)
                  
-                 PolishedResultComparisonView(
-                     originalTitle: article.title,
-                     originalSlug: article.slug,
-                     originalSummary: article.summary,
-                     originalHTML: article.contentHTML,
-                     result: result,
+                     PolishedResultComparisonView(
+                         originalTitle: article.title,
+                         originalSlug: article.slug,
+                         originalSummary: article.summary,
+                         originalHTML: article.contentHTML,
+                         history: article.versionHistory,
+                         result: result,
                      onApply: {
                          article.title = result.title
                          article.slug = result.slug
@@ -903,6 +904,15 @@ struct ArticleEditorView: View {
             isPolishing = false
             activeAlert = .error("Article has no content to polish. Please add some content first.")
             return
+        }
+        
+        // Save History Snapshot
+        // The user wants to compare vs the True Original eventually.
+        // If history is empty, this IS the original.
+        if !article.contentHTML.isEmpty {
+           let label = article.versionHistory.isEmpty ? "Original Draft" : "Version \(article.versionHistory.count)"
+           let version = ArticleVersion(label: label, contentHTML: article.contentHTML, score: article.seoScore)
+           article.versionHistory.append(version)
         }
         
         DispatchQueue.global(qos: .userInitiated).async {

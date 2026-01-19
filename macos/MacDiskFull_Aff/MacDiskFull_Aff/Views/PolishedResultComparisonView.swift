@@ -10,12 +10,29 @@ struct PolishedResultComparisonView: View {
     let originalTitle: String
     let originalSlug: String
     let originalSummary: String
-    let originalHTML: String
+    let originalHTML: String // Fallback current content
+    let history: [ArticleVersion] // Historical versions
     let result: PolishedResult
     let onApply: () -> Void
     let onCancel: () -> Void
     
-    @State private var viewMode: Int = 1 // Default to Visual Preview (1)
+    @State private var viewMode: Int = 1 // 1=Visual Split, 3=Polished Only
+    @State private var selectedVersionID: UUID? // For selecting historical version
+    
+    // Compute the HTML to display on the left side
+    var selectedOriginalHTML: String {
+        // If user selected a specific version, use it
+        if let id = selectedVersionID, let ver = history.first(where: { $0.id == id }) {
+            return ver.contentHTML
+        }
+        // If history exists but nothing selected, default to the FIRST one (True Original)
+        // This solves the user's request to see the "First original" by default
+        if let first = history.first {
+            return first.contentHTML
+        }
+        // Fallback
+        return originalHTML
+    }
     
     var body: some View {
         GeometryReader { fullScreen in
@@ -25,7 +42,7 @@ struct PolishedResultComparisonView: View {
                     // Header Bar
                     HStack {
                         Text("✨ Transformation Review")
-                            .font(.system(size: 24, weight: .bold)) // BIG Title
+                            .font(.system(size: 24, weight: .bold))
                         
                         Spacer()
                         
@@ -43,42 +60,60 @@ struct PolishedResultComparisonView: View {
                     
                     // Main Content Area
                     if viewMode == 1 {
-                        // Visual Split (Before / After)
-                        HStack(spacing: 0) {
-                            // BEFORE
-                            VStack(spacing: 0) {
-                                Text("ORIGINAL")
-                                    .font(.headline)
-                                    .padding(.vertical, 8)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color.red.opacity(0.1))
-                                    .foregroundColor(.red)
+                        // Synced Scrolling Split View
+                        VStack(spacing: 0) {
+                            // Column Headers
+                            HStack(spacing: 0) {
+                                // Original Header with Picker
+                                HStack {
+                                    Spacer()
+                                    if !history.isEmpty {
+                                        Picker("Version", selection: bindingForSelection) {
+                                            ForEach(history) { ver in
+                                                Text(ver.label).tag(Optional(ver.id))
+                                            }
+                                            // Option for the state right before this polish?
+                                            // The 'originalHTML' passed in IS the state right before polish.
+                                            // We can label it "Current State" if it's not in history.
+                                            // But usually we append it to history before showing.
+                                        }
+                                        .pickerStyle(MenuPickerStyle())
+                                        .frame(width: 150)
+                                    } else {
+                                        Text("ORIGINAL")
+                                            .font(.headline)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.red.opacity(0.1))
+                                .foregroundColor(.red)
                                 
-                                WebView(html: generatePreview(html: originalHTML))
-                            }
-                            .overlay(Rectangle().frame(width: 1).foregroundColor(Color.gray.opacity(0.2)), alignment: .trailing)
-                            
-                            // AFTER
-                            VStack(spacing: 0) {
+                                // Divider
+                                Rectangle().frame(width: 1).foregroundColor(Color.gray.opacity(0.2))
+                                
+                                // Optimized Header
                                 Text("OPTIMIZED")
                                     .font(.headline)
                                     .padding(.vertical, 8)
                                     .frame(maxWidth: .infinity)
                                     .background(Color.green.opacity(0.1))
                                     .foregroundColor(.green)
-                                
-                                WebView(html: generatePreview(html: result.html))
                             }
+                            
+                            // Unified WebView for Perfect Sync Scrolling
+                            WebView(html: generateSplitPreview(left: selectedOriginalHTML, right: result.html))
                         }
                     } else if viewMode == 3 {
-                        // Polished Only (MAXIMIZED)
-                        WebView(html: generatePreview(html: result.html))
+                        // Polished Only
+                        WebView(html: generateSinglePreview(html: result.html))
                     } else {
                         // Code Diff
-                        SyncedDiffView(originalContent: originalHTML, polishedContent: result.html)
+                        SyncedDiffView(originalContent: selectedOriginalHTML, polishedContent: result.html)
                     }
                 }
-                .frame(width: fullScreen.size.width * 0.75) // 75% Width
+                .frame(width: fullScreen.size.width * 0.75)
                 .background(Color.white)
                 
                 // MARK: - RIGHT SIDE: ANALYSIS & CONTROLS (25%)
@@ -86,10 +121,12 @@ struct PolishedResultComparisonView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
                             
-                            // 1. SCORES (The "Marketing" Badge)
+                            // 1. SCORES
                             HStack(alignment: .center, spacing: 16) {
                                 VStack {
-                                    Text("\(result.original_score)")
+                                    // Try to find score of selected version
+                                    let score = history.first(where: { $0.id == selectedVersionID })?.score ?? 0
+                                    Text("\(score)")
                                         .font(.system(size: 32, weight: .bold))
                                         .foregroundColor(.red)
                                     Text("Before")
@@ -103,7 +140,7 @@ struct PolishedResultComparisonView: View {
                                 
                                 VStack {
                                     Text("\(result.seo_score)")
-                                        .font(.system(size: 48, weight: .heavy)) // HUGE Score
+                                        .font(.system(size: 48, weight: .heavy))
                                         .foregroundColor(.green)
                                     Text("After")
                                         .font(.caption)
@@ -135,10 +172,9 @@ struct PolishedResultComparisonView: View {
                             
                             Divider()
                             
-                            // 3. METADATA CHANGES
+                            // 3. METADATA UPDATES
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Metadata Updates").font(.headline)
-                                
                                 ChangeBlock(label: "Title", oldVal: originalTitle, newVal: result.title)
                                 ChangeBlock(label: "Slug", oldVal: originalSlug, newVal: result.slug)
                                 ChangeBlock(label: "Summary", oldVal: originalSummary, newVal: result.summary)
@@ -168,7 +204,7 @@ struct PolishedResultComparisonView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
                         }
-                        .buttonStyle(DefaultButtonStyle()) // Fallback for stability
+                        .buttonStyle(DefaultButtonStyle())
                         .controlSize(.large)
                         
                         Button("Cancel", action: onCancel)
@@ -178,15 +214,30 @@ struct PolishedResultComparisonView: View {
                     .background(Color(NSColor.windowBackgroundColor))
                     .overlay(Rectangle().frame(height: 1).foregroundColor(Color.gray.opacity(0.1)), alignment: .top)
                 }
-                .frame(width: fullScreen.size.width * 0.25) // 25% Width
+                .frame(width: fullScreen.size.width * 0.25)
                 .background(Color(NSColor.controlBackgroundColor))
                 .overlay(Rectangle().frame(width: 1).foregroundColor(Color.gray.opacity(0.2)), alignment: .leading)
             }
         }
+        .onAppear {
+            // Select the oldest version by default (True Original)
+            if let first = history.first {
+                selectedVersionID = first.id
+            }
+        }
     }
     
-    // Helper for HTML Preview Styling
-    func generatePreview(html: String) -> String {
+    // Binding helper for the Picker to handle Optional
+    var bindingForSelection: Binding<UUID?> {
+        Binding {
+            selectedVersionID
+        } set: { newVal in
+            selectedVersionID = newVal
+        }
+    }
+    
+    // HTML Generation
+    func generateSplitPreview(left: String, right: String) -> String {
         return """
         <!DOCTYPE html>
         <html>
@@ -194,15 +245,52 @@ struct PolishedResultComparisonView: View {
         <style>
             body { 
                 font-family: -apple-system, system-ui, sans-serif; 
-                padding: 20px; 
-                line-height: 1.6; 
+                margin: 0; padding: 0;
                 color: #333;
                 background: white; 
             }
+            .container {
+                display: flex;
+                min-height: 100vh;
+            }
+            .pane {
+                flex: 1;
+                padding: 20px;
+                box-sizing: border-box;
+                border-right: 1px solid #eee;
+            }
+            .pane:last-child { border-right: none; }
             img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
             h1 { font-size: 2em; margin-bottom: 0.5em; line-height: 1.2; }
             h2 { font-size: 1.5em; margin-top: 1.5em; }
-            p { margin-bottom: 1em; }
+            p { margin-bottom: 1em; line-height: 1.6; }
+        </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="pane">\(left)</div>
+                <div class="pane">\(right)</div>
+            </div>
+        </body>
+        </html>
+        """
+    }
+    
+    func generateSinglePreview(html: String) -> String {
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+            body { 
+                font-family: -apple-system, system-ui, sans-serif; 
+                padding: 40px; 
+                max-width: 800px;
+                margin: 0 auto;
+                line-height: 1.6; 
+                color: #333;
+            }
+            img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         </style>
         </head>
         <body>
@@ -213,7 +301,7 @@ struct PolishedResultComparisonView: View {
     }
 }
 
-// Helper for Metadata Changes
+// Helpers
 struct ChangeBlock: View {
     let label: String
     let oldVal: String
@@ -235,33 +323,20 @@ struct ChangeBlock: View {
     }
 }
 
-// Reuse existing Diff components
 struct SyncedDiffView: View {
     let originalContent: String
     let polishedContent: String
-    
     @State private var showDiffHighlights = true
     
     var body: some View {
         VStack(spacing: 0) {
-            Toggle("Highlight Changes", isOn: $showDiffHighlights)
-                .padding()
-            
+            Toggle("Highlight Changes", isOn: $showDiffHighlights).padding()
             GeometryReader { geo in
                 HStack(spacing: 1) {
-                    ScrollView {
-                         Text(originalContent)
-                            .font(.system(.caption, design: .monospaced))
-                            .padding()
-                    }
-                    .frame(width: geo.size.width/2)
-                    
-                    ScrollView {
-                        Text(polishedContent)
-                           .font(.system(.caption, design: .monospaced))
-                           .padding()
-                   }
-                   .frame(width: geo.size.width/2)
+                    ScrollView { Text(originalContent).font(.system(.caption, design: .monospaced)).padding() }
+                        .frame(width: geo.size.width/2)
+                    ScrollView { Text(polishedContent).font(.system(.caption, design: .monospaced)).padding() }
+                        .frame(width: geo.size.width/2)
                 }
             }
         }

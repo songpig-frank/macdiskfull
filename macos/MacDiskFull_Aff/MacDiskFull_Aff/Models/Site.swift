@@ -178,29 +178,41 @@ enum ArticleStatus: String, Codable, CaseIterable {
     case archived = "Archived"
 }
 
+/// Version History Model
+struct ArticleVersion: Codable, Identifiable, Hashable {
+    var id: UUID = UUID()
+    var label: String // "Original", "Draft 1", "Polished 1"
+    var contentHTML: String
+    var timestamp: Date = Date()
+    var score: Int? // Optional SEO score at that time
+}
+
 /// Blog Article Model
 struct Article: Identifiable, Codable {
     var id: UUID
     var title: String
     var slug: String
     var summary: String
-    var contentHTML: String // Basic HTML body
+    var contentHTML: String // Current content
     var author: String
     var publishedDate: Date
     var heroImage: String
     
     // CMS Status
     var status: ArticleStatus = .draft
-    var redirectURL: String? = nil // If archived, redirect to this URL
+    var redirectURL: String? = nil
     
     // SEO & AI Analysis
-    var seoScore: Int?         // 0-100
+    var seoScore: Int?
     var seoKeywords: [String]?
     var seoAnalysis: String?
     var seoRecommendations: [String]?
     var seoConflictResolution: String?
     
-    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", status: ArticleStatus = .draft, redirectURL: String? = nil, seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil) {
+    // History
+    var versionHistory: [ArticleVersion] = []
+    
+    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", status: ArticleStatus = .draft, redirectURL: String? = nil, seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil, versionHistory: [ArticleVersion] = []) {
         self.id = id
         self.title = title
         self.slug = slug
@@ -216,6 +228,7 @@ struct Article: Identifiable, Codable {
         self.seoAnalysis = seoAnalysis
         self.seoRecommendations = seoRecommendations
         self.seoConflictResolution = seoConflictResolution
+        self.versionHistory = versionHistory
     }
 }
 
