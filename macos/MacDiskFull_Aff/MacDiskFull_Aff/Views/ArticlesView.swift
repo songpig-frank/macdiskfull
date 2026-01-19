@@ -939,24 +939,115 @@ struct ArticleEditorView: View {
         <html>
         <head>
             <style>
-                body { font-family: -apple-system, sans-serif; padding: 40px; line-height: 1.6; margin: 0; color: #333; }
-                h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 2.5em; }
-                h2 { margin-top: 30px; font-size: 1.8em; }
-                img { max-width: 100%; border-radius: 8px; }
-                blockquote { border-left: 4px solid #ccc; margin: 0; padding-left: 16px; color: #666; font-style: italic; }
-                code { background: #f4f4f4; padding: 2px 5px; border-radius: 4px; font-family: monospace; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-                th { background-color: #f7f7f7; font-weight: bold; }
-                a { color: #0066cc; text-decoration: none; }
-                a:hover { text-decoration: underline; }
-                .btn { display: inline-block; padding: 8px 16px; background: #007bff; color: white; border-radius: 4px; text-decoration: none; margin-top: 5px; }
+                body { 
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                    padding: 40px; 
+                    line-height: 1.8; 
+                    margin: 0 auto; 
+                    color: #333; 
+                    max-width: 800px; /* Constrain width for readability */
+                    background-color: #fff;
+                }
+                h1 { 
+                    border-bottom: 2px solid #f0f0f0; 
+                    padding-bottom: 16px; 
+                    font-size: 2.25em; 
+                    font-weight: 700;
+                    margin-bottom: 24px;
+                    line-height: 1.2;
+                }
+                h2 { 
+                    margin-top: 40px; 
+                    margin-bottom: 16px;
+                    font-size: 1.75em; 
+                    font-weight: 600;
+                    color: #111;
+                }
+                h3 {
+                    margin-top: 32px;
+                    margin-bottom: 12px;
+                    font-size: 1.4em;
+                    font-weight: 600;
+                }
+                p {
+                    margin-bottom: 20px;
+                    font-size: 1.1em;
+                }
+                img { 
+                    max-width: 100%; 
+                    height: auto; /* Maintain aspect ratio */
+                    border-radius: 12px; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Subtle shadow for polish */
+                    margin: 24px 0;
+                    display: block;
+                }
+                blockquote { 
+                    border-left: 4px solid #007bff; 
+                    background: #f8f9fa;
+                    margin: 24px 0; 
+                    padding: 16px 20px; 
+                    color: #444; 
+                    font-style: italic;
+                    border-radius: 0 8px 8px 0;
+                }
+                code { 
+                    background: #f1f3f5; 
+                    padding: 2px 6px; 
+                    border-radius: 4px; 
+                    font-family: "SF Mono", Menlo, monospace; 
+                    font-size: 0.9em;
+                    color: #e03131;
+                }
+                pre {
+                    background: #f8f9fa;
+                    padding: 16px;
+                    border-radius: 8px;
+                    overflow-x: auto;
+                    border: 1px solid #e9ecef;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin: 24px 0; 
+                    font-size: 0.95em;
+                }
+                th, td { 
+                    border: 1px solid #e9ecef; 
+                    padding: 12px 16px; 
+                    text-align: left; 
+                }
+                th { 
+                    background-color: #f8f9fa; 
+                    font-weight: 600; 
+                }
+                a { 
+                    color: #007bff; 
+                    text-decoration: none; 
+                    border-bottom: 1px solid transparent;
+                    transition: border-color 0.2s;
+                }
+                a:hover { 
+                    border-bottom-color: #007bff; 
+                }
+                ul, ol {
+                    margin-bottom: 20px;
+                    padding-left: 24px;
+                }
+                li {
+                    margin-bottom: 8px;
+                }
+                .meta {
+                    color: #666;
+                    font-size: 0.95em;
+                    margin-bottom: 32px;
+                }
             </style>
         </head>
         <body>
             <h1>\(article.title)</h1>
-            <p style="color: #666;"><em>By \(article.author)</em></p>
-            <hr>
+            <div class="meta">
+                By \(article.author)
+            </div>
             \(article.contentHTML)
         </body>
         </html>
