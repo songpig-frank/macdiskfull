@@ -890,28 +890,34 @@ struct ArticleEditorView: View {
             return
         }
         
-        AIContentService.shared.polishArticle(
-            contentHTML: article.contentHTML,
-            siteName: site.name,
-            siteTagline: site.tagline,
-            existingTitles: site.articles.map { $0.title },
-            customRules: site.optimizationRules,
-            apiKey: key,
-            provider: site.aiProvider,
-            model: site.aiModel,
-            endpointURL: site.ollamaURL
-        ) { result in
-            DispatchQueue.main.async {
-                isPolishing = false
-                switch result {
-                case .success(let refined):
-                    print("✅ [Polish] Success! Title: \(refined.title)")
-                    print("✅ [Polish] Score: \(refined.original_score) → \(refined.seo_score)")
-                    pendingPolishedResult = refined
-                    showComparison = true
-                case .failure(let error):
-                    print("❌ [Polish] ERROR: \(error.localizedDescription)")
-                    activeAlert = .error("Polish failed: \(error.localizedDescription)")
+        DispatchQueue.global(qos: .userInitiated).async {
+            let site = self.site
+            let article = self.article
+            let key = key // Capture the key from the outer scope
+            
+            AIContentService.shared.polishArticle(
+                contentHTML: article.contentHTML,
+                siteName: site.name,
+                siteTagline: site.tagline,
+                existingTitles: site.articles.map { $0.title },
+                customRules: site.optimizationRules,
+                apiKey: key,
+                provider: site.aiProvider,
+                model: site.aiModel,
+                endpointURL: site.ollamaURL
+            ) { result in
+                DispatchQueue.main.async {
+                    self.isPolishing = false
+                    switch result {
+                    case .success(let refined):
+                        print("✅ [Polish] Success! Title: \(refined.title)")
+                        print("✅ [Polish] Score: \(refined.original_score) → \(refined.seo_score)")
+                        self.pendingPolishedResult = refined
+                        self.showComparison = true
+                    case .failure(let error):
+                        print("❌ [Polish] ERROR: \(error.localizedDescription)")
+                        self.activeAlert = .error("Polish failed: \(error.localizedDescription)")
+                    }
                 }
             }
         }

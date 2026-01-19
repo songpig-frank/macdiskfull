@@ -111,7 +111,6 @@ struct PolishedResultComparisonView: View {
                                 }
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
                             
                             Divider()
                             
