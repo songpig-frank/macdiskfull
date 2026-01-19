@@ -51,9 +51,13 @@ class AIContentService {
         
         print("📝 \(logMessage.trimmingCharacters(in: .whitespacesAndNewlines))") // Also print to console
         
-        let fileURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Documents")
-            .appendingPathComponent("WebMakr_Debug.log")
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileURL = tempDir.appendingPathComponent("WebMakr_Debug.log")
+        
+        // Print the command ONCE so the user sees it
+        if !FileManager.default.fileExists(atPath: fileURL.path) {
+            print("\n🔍 TO VIEW LOGS RUN:\ntail -f \(fileURL.path)\n")
+        }
             
         if let handle = try? FileHandle(forWritingTo: fileURL) {
             handle.seekToEndOfFile()
@@ -199,6 +203,8 @@ class AIContentService {
     
     func polishArticle(contentHTML: String, siteName: String, siteTagline: String, existingTitles: [String], customRules: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
         
+        AIContentService.logDebug("[polishArticle] Initiated. Provider: \(provider), Model: \(model)")
+        
         let systemPrompt = "You are an elite SEO & AI Optimization Expert. Output valid JSON only."
         
         // Format existing titles
@@ -288,7 +294,7 @@ class AIContentService {
                   // Try to find JSON block
                   var jsonString = content
                   if let start = content.range(of: "{"), let end = content.range(of: "}", options: .backwards) {
-                       jsonString = String(content[start.lowerBound...end.upperBound])
+                       jsonString = String(content[start.lowerBound...end.lowerBound])
                   }
                   
                   AIContentService.logDebug("[polishArticle] JSON Extracted: \(jsonString.count) chars")
