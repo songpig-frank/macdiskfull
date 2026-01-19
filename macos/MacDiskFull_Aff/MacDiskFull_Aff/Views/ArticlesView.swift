@@ -7,12 +7,14 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ArticlesView: View {
     @Binding var site: Site
     @State private var editingArticleId: UUID?
     @State private var showAIWriter: Bool = false
     @State private var confirmingRestore = false
+    @State private var isTargeted: Bool = false
     
     var body: some View {
         List {
@@ -32,6 +34,18 @@ struct ArticlesView: View {
             .onDelete(perform: delete)
         }
         .listStyle(InsetListStyle())
+        .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
+            handleDrop(providers: providers)
+        }
+        .overlay(
+            Group {
+                if isTargeted {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.accentColor, lineWidth: 3)
+                        .background(Color.accentColor.opacity(0.1))
+                }
+            }
+        )
         .navigationTitle("Articles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -102,6 +116,22 @@ struct ArticlesView: View {
     }
 }
 
+    func handleDrop(providers: [NSItemProvider]) -> Bool {
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                _ = provider.loadObject(ofClass: URL.self) { url, error in
+                    if let url = url, let content = try? String(contentsOf: url, encoding: .utf8) {
+                        DispatchQueue.main.async {
+                            let article = parseMarkdownToArticle(content, filename: url.deletingPathExtension().lastPathComponent)
+                            site.articles.append(article)
+                        }
+                    }
+                }
+            }
+        }
+        return true
+    }
+    
     func importMarkdown() {
         let panel = NSOpenPanel()
         panel.allowedFileTypes = ["md", "markdown", "txt"]
