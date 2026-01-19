@@ -172,9 +172,9 @@ class AIContentService {
         Return a JSON object:
         {
             "score": 0-100, // Technical SEO Score
-            "marketing_score": 0-100, // Creative/Marketing Impact Score
+            "marketing_score": 0-100, // AI Visibility Score (Likelihood to be cited by LLMs)
             "score_breakdown": [
-                { "criterion": "Title Impact", "score": 15, "max_score": 20, "reasoning": "..." }
+                { "criterion": "LLM Optimization", "score": 15, "max_score": 20, "reasoning": "Clear direct answers." }
             ],
             "analysis": "Short explanation of the score.",
             "recommendations": ["Point 1", "Point 2"]
@@ -235,7 +235,7 @@ class AIContentService {
           "summary": "Compelling meta description (1-2 sentences)",
           "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
           "seo_score": 95, // Technical SEO Score
-          "marketing_score": 92, // Creative/Marketing Impact Score
+          "marketing_score": 92, // AI Visibility / LLM Citation Score
           "score_breakdown": [
             { "criterion": "Title & Hooks", "score": 9, "max_score": 10, "reasoning": "Great clickability" },
             { "criterion": "Content Depth", "score": 18, "max_score": 20, "reasoning": "Comprehensive" },
@@ -278,10 +278,13 @@ class AIContentService {
            - Any meta-commentary about the writing process
            - Markdown headers like "# Title" if they duplicate the title field
         5. **Strict Scoring Logic**: 
-           - **SEO Score** (0-100): Evaluate technical aspects: Keywords, Structure, Length, Metadata, Image Tags.
-           - **Marketing Score** (0-100): Evaluate creative aspects: Engagement, Hooks, Voice, Uniqueness, Viral Potential.
+           - **SEO Score** (0-100): Evaluate Google ranking potential (Keywords, Metadata, Length, Image Tags).
+           - **AI Visibility Score** (0-100): Evaluate likelihood of being cited by ChatGPT/Perplexity (GEO).
+             - **Direct Answers**: Does it answer user queries immediately? (No fluff).
+             - **Structure**: Uses clear Bullet Points, Tables, and Headers that LLMs can parse easily.
+             - **Authority**: High fact density and unique insights.
            - Use the criteria list for `score_breakdown` to support these scores.
-           - If `<img>` tags are missing, BOTH scores should be penalized (Visuals are marketing AND SEO).
+           - If `<img>` tags are missing, BOTH scores should be penalized.
         6. **Visuals (CRITICAL)**: 
            - **EXISTING IMAGES**: Preserve exact `<img>` tags. Do not touch them.
            - **MISSING IMAGES**: You MUST insert `<img src="https://placehold.co/600x400/png" alt="PROMPT: Describe image here" />` placeholders where potential images should go.

@@ -168,7 +168,7 @@ struct PolishedResultComparisonView: View {
                                             Text("\(result.marketing_score)")
                                                 .font(.system(size: 36, weight: .heavy))
                                                 .foregroundColor(.purple)
-                                            Text("Marketing")
+                                            Text("AI Visibility")
                                                 .font(.caption)
                                                 .bold()
                                                 .foregroundColor(.purple.opacity(0.8))
