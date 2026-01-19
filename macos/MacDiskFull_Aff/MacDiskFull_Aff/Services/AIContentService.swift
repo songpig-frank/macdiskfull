@@ -24,6 +24,15 @@ struct PolishedResult: Decodable {
 class AIContentService {
     static let shared = AIContentService()
     
+    private let session: URLSession
+    
+    init() {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 180 // 3 minutes timeout for long generations
+        config.timeoutIntervalForResource = 180
+        self.session = URLSession(configuration: config)
+    }
+    
     enum AIError: Error, LocalizedError {
         case missingKey
         case invalidResponse
@@ -172,12 +181,17 @@ class AIContentService {
           "summary": "Compelling meta description (1-2 sentences)",
           "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
           "seo_score": 95, // The score of your NEW polished version
-          "html": "The polished HTML body content",
+          "seo_score": 95, // The score of your NEW polished version
+          "html": "The polished HTML body content (MUST ESCAPE ALL QUOTES)",
           "keywords": ["keyword1", "keyword2"], // Target keywords found/added
-          "analysis": "EDUCATIONAL BREAKDOWN:\n- PROBLEM: [What was wrong, e.g. Passive voice, generic title, lack of keywords]\n- SOLUTION: [Why the new version is better, e.g. Active verbs, power words, keyword stacking]",
+          "analysis": "EDUCATIONAL BREAKDOWN:\n- PROBLEM: [Analysis]\n- SOLUTION: [Solution]",
           "recommendations": ["Step 1", "Step 2"],
           "conflict_resolution": "Verdict on SEO vs AI conflicts"
         }
+        
+        IMPORTANT: Your output parsing depends on VALID JSON.
+        - You MUST escape all double quotes inside the "html" string (e.g. <img src=\"...\" />).
+        - Do not output markdown code blocks. Just the raw JSON string.
         
         CONTEXT:
         Site Name: \(siteName)
@@ -324,7 +338,7 @@ class AIContentService {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        URLSession.shared.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, _, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(AIError.invalidResponse)); return }
             
@@ -376,7 +390,7 @@ class AIContentService {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        URLSession.shared.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, _, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(AIError.invalidResponse)); return }
             
@@ -437,7 +451,7 @@ class AIContentService {
         
         print("🎨 [DALL-E] Generating: \(prompt.prefix(50))...")
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(AIError.invalidResponse)); return }
             
