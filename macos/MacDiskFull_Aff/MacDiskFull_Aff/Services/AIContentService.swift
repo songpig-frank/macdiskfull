@@ -9,6 +9,8 @@ struct VideoMetadata {
 }
 
 struct PolishedResult: Decodable {
+    let title: String
+    let slug: String
     let html: String
     let original_score: Int // Score of the input content
     let seo_score: Int // Score of the polished content
@@ -105,6 +107,8 @@ class AIContentService {
         let userPrompt = """
         Analyze, Optimize, and Polish the following blog post. Return a JSON object with this structure:
         {
+          "title": "A Viral, High-CTR, SEO-Optimized Title (Max 60 chars)",
+          "slug": "clean-keyword-rich-url-slug",
           "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
           "seo_score": 95, // The score of your NEW polished version
           "html": "The polished HTML body content",
@@ -115,10 +119,11 @@ class AIContentService {
         }
 
         Instructions:
-        1. **Evaluate First**: honestly score the provided content based on SEO best practices.
-        2. **Optimize**: Rewrite to improve score to 90+.
-        3. **Strip Chatter**: Remove intro/outro.
-        4. **Visuals**: Add <img ... placeholders.
+        1. **Title Magic**: Create a title that triggers curiosity AND ranks for the main topic.
+        2. **Evaluate First**: honestly score the provided content based on SEO best practices.
+        3. **Optimize**: Rewrite to improve score to 90+.
+        4. **Strip Chatter**: Remove intro/outro.
+        5. **Visuals**: Add <img ... placeholders.
         
         DYNAMIC ENGINE RULES (User-Defined):
         \(customRules)

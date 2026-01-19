@@ -443,9 +443,12 @@ struct ArticleEditorView: View {
         .sheet(isPresented: $showComparison) {
             if let result = pendingPolishedResult {
                 PolishedResultComparisonView(
-                    original: article.contentHTML,
+                    originalTitle: article.title,
+                    originalHTML: article.contentHTML,
                     result: result,
                     onApply: {
+                        article.title = result.title // Update Title
+                        article.slug = result.slug   // Update Slug
                         article.contentHTML = result.html
                         article.seoScore = result.seo_score
                         article.seoKeywords = result.keywords

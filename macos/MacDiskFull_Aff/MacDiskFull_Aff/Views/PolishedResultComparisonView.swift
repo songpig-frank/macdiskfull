@@ -8,7 +8,8 @@ import SwiftUI
 import WebKit
 
 struct PolishedResultComparisonView: View {
-    let original: String
+    let originalTitle: String
+    let originalHTML: String
     let result: PolishedResult
     let onApply: () -> Void
     let onCancel: () -> Void
@@ -41,6 +42,28 @@ struct PolishedResultComparisonView: View {
                 }
             })
             
+            // Metadata Review (New)
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading) {
+                    Text("Current Title").font(.caption).foregroundColor(.secondary)
+                    Text(originalTitle).lineLimit(2).font(.caption)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Image(systemName: "arrow.right").foregroundColor(.blue)
+                
+                VStack(alignment: .leading) {
+                    Text("AI Viral Title").font(.caption).foregroundColor(.blue).bold()
+                    Text(result.title).lineLimit(2).font(.headline)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding()
+            .background(Color.blue.opacity(0.05))
+            .cornerRadius(8)
+            .padding(.horizontal)
+            
+            
             // Scores
             HStack(spacing: 40) {
                 ScoreBadge(title: "Original", score: result.original_score)
@@ -55,7 +78,7 @@ struct PolishedResultComparisonView: View {
             HSplitView {
                 VStack(alignment: .leading) {
                     Text("Original").font(.caption).bold().padding(.leading)
-                    TextEditor(text: .constant(original))
+                    TextEditor(text: .constant(originalHTML))
                         .font(.system(.body, design: .monospaced))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
