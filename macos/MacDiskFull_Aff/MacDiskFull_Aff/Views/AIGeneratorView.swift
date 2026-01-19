@@ -195,29 +195,19 @@ struct AIGeneratorView: View {
                             Text("Transcript / Notes")
                             Spacer()
                             if !videoTitle.isEmpty {
-                                HStack {
-                                    if fetchStatus.contains("Empty") || fetchStatus.contains("Error") {
-                                        Button("View Raw") { showingRawData = true }
-                                            .font(.caption).foregroundColor(.red)
-                                    }
-                                    Button("Fetch Transcript (Smart)") { fetchTranscriptSmart() }
-                                        .font(.caption)
-                                        .padding(4)
-                                        .background(Color.blue.opacity(0.1))
-                                        .cornerRadius(4)
-                                }
+                                Button("Fetch Transcript (Optional)") { fetchTranscriptSmart() }
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
                         TextEditor(text: $transcript)
-                            .frame(height: 120)
+                            .frame(height: 200) // Taller for manual input
                             .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.gray.opacity(0.2)))
-                        Text("Tip: Go to the video, open description, click 'Show Transcript', then copy/paste here.")
+                        Text("Paste your notes, article text, or valid transcript here.")
                             .font(.caption).foregroundColor(.secondary)
                     }
                 }
-                .alert(isPresented: $showingRawData) {
-                    Alert(title: Text("Raw Transcript Data"), message: Text(lastRawResponse.prefix(500)), dismissButton: .default(Text("Close")))
-                }
+                // Removed Debug Alert
                 
                 Section {
                     Button(action: generate) {
