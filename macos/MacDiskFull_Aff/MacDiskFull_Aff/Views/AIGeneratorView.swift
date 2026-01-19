@@ -261,7 +261,7 @@ struct AIGeneratorView: View {
             }
         }.resume()
     }
-    }
+
     
     func generate() {
         isGenerating = true
