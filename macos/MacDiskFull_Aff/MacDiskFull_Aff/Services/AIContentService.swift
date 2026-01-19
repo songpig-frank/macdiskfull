@@ -87,16 +87,18 @@ class AIContentService {
         }
     func polishArticle(contentHTML: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<String, Error>) -> Void) {
         
-        let systemPrompt = "You are a professional expert editor. Output refined HTML content only. Do not wrap in ```html."
+        let systemPrompt = "You are an elite SEO & AI Optimization Expert. You specialize in structuring content to rank #1 on Google and get recommended by ChatGPT, Perplexity, and Gemini. You are also a master of HTML/CSS for high-converting affiliate articles. Output refined HTML BODY content only. Do not wrap in ```html."
+        
         let userPrompt = """
-        Polish and improve the format of the following blog post content.
+        Optimize and polish the following blog post content to maximize SEO, AI discoverability, and affiliate conversion revenue.
         
         Instructions:
-        1. Remove any intro/outro text like "Here is the article" or "Sure, I can help".
-        2. Remove any "Sources" lists or citations unless embedded naturally.
-        3. Ensure proper header hierarchy (H2, H3).
-        4. Make paragraphs short and readable.
-        5. Insert relevant placeholder images using this format: <img src="https://placehold.co/600x400?text=Topic+Name" alt="Topic Name" />
+        1. **Strip Meta-Chatter**: REMOVE completely any intro/outro text like "Here is the article", "Sources:", or "Conclusion" headers that don't add value.
+        2. **Semantic Structure**: Use proper H2 and H3 tags. Structure the content so AI bots can easily parse the best answer.
+        3. **Snippet Optimization**: Start sections with direct, bold answers to common questions (for Featured Snippets).
+        4. **Affiliate Conversion**: formatting should be clean, professional, and trustworthy. Use bullet points for readability.
+        5. **Visuals**: Insert relevant placeholder images: <img src="https://placehold.co/600x400?text=Keywords" alt="Descriptive Alt Text" />
+        6. **Formatting**: paragraphs should be short (1-3 sentences). Use <strong>bold</strong> for key takeaways.
         
         Content:
         \(contentHTML.prefix(25000))
