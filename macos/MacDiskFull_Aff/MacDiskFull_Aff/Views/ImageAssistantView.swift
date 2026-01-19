@@ -218,14 +218,8 @@ struct ImageAssistantView: View {
         processingImageId = img.id
         lastError = nil
         
-        if site.openAIKey.hasPrefix("sk-or-") {
-            lastError = "Configuration Error: DALL-E requires a direct OpenAI API Key (starting with 'sk-'), but an OpenRouter key ('sk-or-...') was found. Please use an OpenAI key for image generation."
-            processingImageId = nil
-            return
-        }
-        
         if site.openAIKey.isEmpty {
-             lastError = "Missing API Key: Please add your OpenAI API Key in Site Settings to use DALL-E."
+             lastError = "Missing API Key: Please add your OpenAI or OpenRouter API Key in Site Settings to use Image Magic."
              processingImageId = nil
              return
         }

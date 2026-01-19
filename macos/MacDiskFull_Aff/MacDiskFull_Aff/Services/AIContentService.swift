@@ -399,15 +399,26 @@ class AIContentService {
     // MARK: - Image Generation (DALL-E 3)
     
     func generateImage(prompt: String, size: String = "1024x1024", apiKey: String, completion: @escaping (Result<String, Error>) -> Void) {
-        let url = URL(string: "https://api.openai.com/v1/images/generations")!
+        let isOpenRouter = apiKey.hasPrefix("sk-or-")
+        let urlString = isOpenRouter ? "https://openrouter.ai/api/v1/images/generations" : "https://api.openai.com/v1/images/generations"
+        let url = URL(string: urlString)!
+        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        if isOpenRouter {
+            request.addValue("https://macdiskfull.com", forHTTPHeaderField: "HTTP-Referer") // Required by OpenRouter
+            request.addValue("WebMakr", forHTTPHeaderField: "X-Title")
+        }
+        
         // DALL-E 3 Request
+        // OpenRouter requires 'openai/dall-e-3', OpenAI requires 'dall-e-3'
+        let model = isOpenRouter ? "openai/dall-e-3" : "dall-e-3"
+        
         let body: [String: Any] = [
-            "model": "dall-e-3",
+            "model": model,
             "prompt": prompt,
             "n": 1,
             "size": size,
