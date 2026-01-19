@@ -206,9 +206,61 @@ struct AIGeneratorView: View {
                              self.videoDate = String(content)
                         }
                     }
+                    
+                    // 4. Try Fetch Transcript (Advanced)
+                    // Look for "captionTracks" inside the JSON blob
+                    if let range = html.range(of: "\"captionTracks\":\\[\\{\"baseUrl\":\"(.*?)\"", options: .regularExpression) {
+                        let match = String(html[range])
+                        // Extract URL
+                        if let urlStart = match.components(separatedBy: "\"baseUrl\":\"").last {
+                            // Decode JSON unicode escapes (e.g. \u0026 -> &)
+                            let urlString = urlStart.replacingOccurrences(of: "\\u0026", with: "&")
+                                                    .replacingOccurrences(of: "\\", with: "") // unescape backslashes
+                            
+                            if let captionURL = URL(string: urlString) {
+                                print("Found Caption URL: \(captionURL)")
+                                self.fetchTranscriptXML(url: captionURL)
+                            }
+                        }
+                    }
                 }
             }
         }.resume()
+    }
+    
+    func fetchTranscriptXML(url: URL) {
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            if let data = data, let xml = String(data: data, encoding: .utf8) {
+                DispatchQueue.main.async {
+                    // Simple Regex to extract text from <text start="..." dur="...">Hello World</text>
+                    // Remove tags
+                    // Decode HTML entities (&amp; -> &)
+                    
+                    do {
+                        let regex = try NSRegularExpression(pattern: "<text.*?>(.*?)</text>", options: [])
+                        let matches = regex.matches(in: xml, options: [], range: NSRange(location: 0, length: xml.count))
+                        
+                        var fullText = ""
+                        for match in matches {
+                            if let range = Range(match.range(at: 1), in: xml) {
+                                let line = String(xml[range])
+                                fullText += line.replacingOccurrences(of: "&amp;", with: "&")
+                                                .replacingOccurrences(of: "&#39;", with: "'")
+                                                .replacingOccurrences(of: "&quot;", with: "\"")
+                                                + " "
+                            }
+                        }
+                        
+                        if !fullText.isEmpty {
+                            self.transcript = fullText
+                        }
+                    } catch {
+                        print("Regex Error")
+                    }
+                }
+            }
+        }.resume()
+    }
     }
     
     func generate() {
