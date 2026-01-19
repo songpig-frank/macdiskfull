@@ -18,6 +18,7 @@ struct PolishedResultComparisonView: View {
     
     @State private var viewMode: Int = 0 // 0: Code, 1: Preview
     @State private var showFullScreen: Bool = false
+    @State private var showScoreDetails: Bool = false
     @Environment(\.presentationMode) var presentationMode
     
     var isPresentationMode: Bool = false
@@ -94,20 +95,80 @@ struct PolishedResultComparisonView: View {
             
             
             // Scores
-            HStack(spacing: 40) {
-                ScoreBadge(title: "Original", score: result.original_score)
-                Image(systemName: "arrow.right").font(.title2).foregroundColor(.secondary)
-                VStack {
-                    ScoreBadge(title: "Polished (After)", score: result.seo_score)
-                    if result.html.contains("placehold.co") {
-                        Text("Visuals Pending")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.orange)
-                            .padding(.top, 2)
-                            .help("Score assumes images will be generated")
+            // Scores
+            VStack {
+                HStack(spacing: 40) {
+                    ScoreBadge(title: "Original", score: result.original_score)
+                    Image(systemName: "arrow.right").font(.title2).foregroundColor(.secondary)
+                    VStack {
+                        ScoreBadge(title: "Polished (After)", score: result.seo_score)
+                        
+                        // Score Breakdown Toggle
+                        Button(action: { showScoreDetails.toggle() }) {
+                            Label(showScoreDetails ? "Hide Details" : "Score Details", systemImage: "info.circle")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.link)
+                        .padding(.top, 4)
+                        
+                        if result.html.contains("placehold.co") {
+                            Text("Visuals Pending")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.orange)
+                                .padding(.top, 2)
+                                .help("Score assumes images will be generated")
+                        }
                     }
                 }
+                
+                if showScoreDetails, let breakdown = result.score_breakdown {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Why this score?").font(.caption.bold()).foregroundColor(.secondary)
+                        
+                        ForEach(breakdown, id: \.criterion) { item in
+                            HStack(alignment: .center) {
+                                Text(item.criterion)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .frame(width: 140, alignment: .leading)
+                                
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        Rectangle()
+                                            .frame(width: 80, height: 6)
+                                            .opacity(0.1)
+                                            .foregroundColor(.gray)
+                                            .cornerRadius(3)
+                                        
+                                        Rectangle()
+                                            .frame(width: 80 * (CGFloat(item.score) / CGFloat(item.max_score)), height: 6)
+                                            .foregroundColor(item.score > Int(Double(item.max_score) * 0.8) ? .green : (item.score > Int(Double(item.max_score) * 0.5) ? .orange : .red))
+                                            .cornerRadius(3)
+                                    }
+                                }
+                                .frame(width: 80, height: 6)
+                                
+                                Text("\(item.score)/\(item.max_score)")
+                                    .font(.system(.caption, design: .monospaced))
+                                    .frame(width: 35, alignment: .trailing)
+                                
+                                Text(item.reasoning)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            }
+                            Divider()
+                        }
+                    }
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+                    .padding(.top, 10)
+                    .padding(.horizontal)
+                    .transition(.opacity)
+                }
             }
+            .padding(.vertical)
             .padding()
             
             Divider()

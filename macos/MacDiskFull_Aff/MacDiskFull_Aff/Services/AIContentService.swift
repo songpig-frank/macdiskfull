@@ -8,6 +8,13 @@ struct VideoMetadata {
     var url: String
 }
 
+struct ScoreComponent: Decodable {
+    let criterion: String
+    let score: Int
+    let max_score: Int
+    let reasoning: String
+}
+
 struct PolishedResult: Decodable {
     let title: String
     let slug: String // SEO friendly URL slug
@@ -15,6 +22,7 @@ struct PolishedResult: Decodable {
     let html: String
     let original_score: Int // Score of the input content
     let seo_score: Int // Score of the polished content
+    let score_breakdown: [ScoreComponent]? // Detailed breakdown
     let keywords: [String]
     let analysis: String
     let recommendations: [String] // Steps to reach 100%
@@ -181,7 +189,12 @@ class AIContentService {
           "summary": "Compelling meta description (1-2 sentences)",
           "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
           "seo_score": 95, // The score of your NEW polished version
-          "seo_score": 95, // The score of your NEW polished version
+          "score_breakdown": [
+            { "criterion": "Title & Hooks", "score": 9, "max_score": 10, "reasoning": "Great clickability" },
+            { "criterion": "Content Depth", "score": 18, "max_score": 20, "reasoning": "Comprehensive" },
+            { "criterion": "Visuals", "score": 5, "max_score": 20, "reasoning": "Needs real images" },
+            { "criterion": "Keyword Optimization", "score": 10, "max_score": 10, "reasoning": "Targeting 'mac storage' well" }
+          ],
           "html": "The polished HTML body content (MUST ESCAPE ALL QUOTES)",
           "keywords": ["keyword1", "keyword2"], // Target keywords found/added
           "analysis": "EDUCATIONAL BREAKDOWN:\n- PROBLEM: [Analysis]\n- SOLUTION: [Solution]",
