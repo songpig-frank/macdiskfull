@@ -758,11 +758,11 @@ struct ArticleEditorView: View {
                          pendingPolishedResult = nil
                      }
                  )
-                 .background(Color(NSColor.windowBackgroundColor))
-                 .cornerRadius(12)
-                 .shadow(radius: 50)
-                 .padding(40)
-                 .transition(.scale(scale: 0.95).combined(with: .opacity))
+                  
+
+                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                 .padding(10) // MAXIMIZED SIZE
+                 .transition(.scale(scale: 0.99).combined(with: .opacity))
                  .id("comparison-overlay")
             }
         }
