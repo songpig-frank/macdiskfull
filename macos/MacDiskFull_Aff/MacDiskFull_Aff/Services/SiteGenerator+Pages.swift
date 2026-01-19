@@ -21,7 +21,7 @@ extension SiteGeneratorSync {
         try generateArticleIndex(to: dir.appendingPathComponent("articles.html"))
         
         // 3. Generate each Article
-        for article in site.articles {
+        for article in site.articles where article.status == .published {
             let filename = (article.slug.isEmpty ? "article-\(article.id)" : article.slug) + ".html"
             let url = articlesDir.appendingPathComponent(filename)
             try generateSingleArticle(article, to: url)
@@ -38,7 +38,7 @@ extension SiteGeneratorSync {
             <title>Articles – \(escapeHTML(site.name))</title>
             <meta name="description" content="Latest news comparisons and guides for Mac users.">
             <link rel="stylesheet" href="style.css">
-            <link rel="icon" type="image/png" href="assets/favicon.png">
+            <link rel="icon" href="\(getAssetURL(site.faviconURL, defaultName: "favicon"))">
         </head>
         <body>
             \(generateSharedHeader(activePage: "articles"))
@@ -48,7 +48,11 @@ extension SiteGeneratorSync {
                 <p class="lead">Guides, comparisons, and news for Mac users.</p>
                 
                 <div class="article-grid">
-                    \(site.articles.map { article in
+                <div class="article-grid">
+                    \(site.articles
+                        .filter { $0.status == .published }
+                        .sorted { $0.publishedDate > $1.publishedDate }
+                        .map { article in
                         """
                         <div class="article-card">
                             <div class="article-content">
@@ -68,7 +72,7 @@ extension SiteGeneratorSync {
         </html>
         """
         
-        try html.write(to: url, atomically: true, encoding: .utf8)
+        try html.write(to: url, atomically: true, encoding: String.Encoding.utf8)
     }
     
     private func generateSingleArticle(_ article: Article, to url: URL) throws {
@@ -90,7 +94,7 @@ extension SiteGeneratorSync {
             <meta property="og:type" content="article">
             
             <link rel="stylesheet" href="\(relativeCSS)">
-            <link rel="icon" type="image/png" href="../assets/favicon.png">
+            <link rel="icon" href="../\(getAssetURL(site.faviconURL, defaultName: "favicon"))">
         </head>
         <body>
             \(generateSharedHeader(activePage: "articles", depth: 1))
@@ -122,7 +126,7 @@ extension SiteGeneratorSync {
         </html>
         """
         
-        try html.write(to: url, atomically: true, encoding: .utf8)
+        try html.write(to: url, atomically: true, encoding: String.Encoding.utf8)
     }
     
     // MARK: - Static Pages
@@ -168,7 +172,7 @@ extension SiteGeneratorSync {
         </body>
         </html>
         """
-        try html.write(to: url, atomically: true, encoding: .utf8)
+        try html.write(to: url, atomically: true, encoding: String.Encoding.utf8)
     }
     
     private func generateContactPage(to url: URL) throws {
@@ -200,7 +204,7 @@ extension SiteGeneratorSync {
         </body>
         </html>
         """
-        try html.write(to: url, atomically: true, encoding: .utf8)
+        try html.write(to: url, atomically: true, encoding: String.Encoding.utf8)
     }
     
     private func generateDisclosurePage(to url: URL) throws {
@@ -230,7 +234,7 @@ extension SiteGeneratorSync {
         </body>
         </html>
         """
-        try html.write(to: url, atomically: true, encoding: .utf8)
+        try html.write(to: url, atomically: true, encoding: String.Encoding.utf8)
     }
     
     // MARK: - Shared Components

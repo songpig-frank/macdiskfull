@@ -78,9 +78,8 @@ struct AIGeneratorView: View {
                         Picker("Model", selection: $site.aiModel) {
                              Text("Claude 3.5 Sonnet").tag("anthropic/claude-3.5-sonnet")
                              Text("GPT-4o").tag("openai/gpt-4o")
-                             Text("Llama 3 70B").tag("meta-llama/llama-3-70b-instruct")
-                             Text("Mixtral 8x22B").tag("mistralai/mixtral-8x22b")
-                             Text("Gemini Pro 1.5").tag("google/gemini-pro-1.5")
+                             Text("Gemini Flash 1.5").tag("google/gemini-flash-1.5")
+                             Text("Llama 3.1 70B").tag("meta-llama/llama-3.1-70b-instruct")
                         }
                     }
                     
@@ -537,7 +536,7 @@ struct AIGeneratorView: View {
                 task.waitUntilExit()
                 
                 let data = outPipe.fileHandleForReading.readDataToEndOfFile()
-                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+                _ = errPipe.fileHandleForReading.readDataToEndOfFile()
                 
                 if let jsonStr = String(data: data, encoding: .utf8) {
                     if let jsonData = jsonStr.data(using: .utf8),

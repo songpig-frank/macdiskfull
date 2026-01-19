@@ -17,61 +17,85 @@ struct ArticlesView: View {
     @State private var isTargeted: Bool = false
     
     var body: some View {
-        List {
-            ForEach(site.articles) { article in
-                Button(action: { editingArticleId = article.id }) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(article.title)
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                
-                                // Status Badge
-                                Text(article.status.rawValue)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(statusColor(article.status).opacity(0.2))
-                                    .foregroundColor(statusColor(article.status))
-                                    .cornerRadius(4)
-                            }
-                            
-                            HStack(spacing: 8) {
-                                Text(article.slug)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                
-                                if let score = article.seoScore {
-                                    Text("SEO: \(score)")
+        ZStack {
+            // MAIN CONTENT
+            List {
+                ForEach(site.articles) { article in
+                    Button(action: { editingArticleId = article.id }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(article.title)
+                                        .font(.headline)
+                                        .lineLimit(1)
+                                    
+                                    // Status Badge
+                                    Text(article.status.rawValue)
                                         .font(.caption2)
-                                        .foregroundColor(score >= 80 ? .green : (score >= 50 ? .orange : .red))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(statusColor(article.status).opacity(0.2))
+                                        .foregroundColor(statusColor(article.status))
+                                        .cornerRadius(4)
+                                }
+                                
+                                HStack(spacing: 8) {
+                                    Text(article.slug)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                    
+                                    if let score = article.seoScore {
+                                        Text("SEO: \(score)")
+                                            .font(.caption2)
+                                            .foregroundColor(score >= 80 ? .green : (score >= 50 ? .orange : .red))
+                                    }
                                 }
                             }
-                        }
-                        
-                        Spacer()
-                        
-                        // Delete button
-                        Button(action: {
-                            if let idx = site.articles.firstIndex(where: { $0.id == article.id }) {
-                                site.articles.remove(at: idx)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                if let idx = site.articles.firstIndex(where: { $0.id == article.id }) {
+                                    site.articles.remove(at: idx)
+                                }
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red.opacity(0.7))
                             }
-                        }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red.opacity(0.7))
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        .help("Delete article")
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
+                .onDelete(perform: delete)
             }
-            .onDelete(perform: delete)
+            .listStyle(InsetListStyle())
+            
+            // EDITOR OVERLAY (Custom Modal)
+            if let uuid = editingArticleId, let index = site.articles.firstIndex(where: { $0.id == uuid }) {
+                // Dimmed Background
+                Color.black.opacity(0.6)
+                    .edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        // Optional: Tap outside to close
+                        // editingArticleId = nil 
+                    }
+                    .transition(.opacity)
+                
+                // Editor Window
+                ArticleEditorView(site: $site, article: $site.articles[index]) {
+                    editingArticleId = nil
+                }
+                .background(Color(NSColor.windowBackgroundColor))
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.5), radius: 20, x: 0, y: 10)
+                .padding(30) // The "Margin" you requested (shows what's behind)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .id(uuid) // Force identity
+            }
         }
-        .listStyle(InsetListStyle())
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
             handleDrop(providers: providers)
         }
@@ -122,18 +146,7 @@ struct ArticlesView: View {
         }
         .sheet(isPresented: $showAIWriter) {
             AIGeneratorView(site: $site) { newArticle in
-                site.articles.append(newArticle)
-            }
-        }
-        .sheet(item: Binding(
-            get: { editingArticleId.map { WrappedUUID(uuid: $0) } },
-            set: { editingArticleId = $0?.uuid }
-        )) { wrappedId in
-            if let index = site.articles.firstIndex(where: { $0.id == wrappedId.uuid }) {
-                ArticleEditorView(site: $site, article: $site.articles[index]) {
-                    editingArticleId = nil
-                }
-                .frame(minWidth: 1000, minHeight: 800)
+                site.articles.insert(newArticle, at: 0)
             }
         }
     }
@@ -149,7 +162,7 @@ struct ArticlesView: View {
             summary: "Short summary...",
             contentHTML: "<p>Content</p>"
         )
-        site.articles.append(newArticle)
+        site.articles.insert(newArticle, at: 0)
         editingArticleId = newArticle.id // Auto-open
     }
     
@@ -162,7 +175,7 @@ struct ArticlesView: View {
                     if let url = url, let content = try? String(contentsOf: url, encoding: .utf8) {
                         DispatchQueue.main.async {
                             let article = parseMarkdownToArticle(content, filename: url.deletingPathExtension().lastPathComponent)
-                            site.articles.append(article)
+                    site.articles.insert(article, at: 0)
                         }
                     }
                 }
@@ -213,7 +226,7 @@ struct ArticlesView: View {
                     let parts = line.split(separator: ":", maxSplits: 1).map { String($0).trimmingCharacters(in: .whitespaces) }
                     if parts.count == 2 {
                         let key = parts[0]
-                        var value = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                        let value = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
                         
                         switch key {
                         case "title": title = value
@@ -239,7 +252,7 @@ struct ArticlesView: View {
         // 2. Convert Body to HTML (Simple Parser)
         var html = ""
         var inList = false
-        var lines = contentBody.components(separatedBy: .newlines)
+        let lines = contentBody.components(separatedBy: .newlines)
         
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -316,6 +329,22 @@ struct ArticlesView: View {
         }
     }
     
+    /// Returns the appropriate color for SEO score
+    func scoreColor(_ score: Int) -> Color {
+        if score >= 80 { return .green }
+        if score >= 60 { return .orange }
+        return .red
+    }
+    
+    /// Returns a label for the SEO score
+    func scoreLabel(_ score: Int) -> String {
+        if score >= 90 { return "Excellent" }
+        if score >= 80 { return "Good" }
+        if score >= 60 { return "Needs Work" }
+        if score >= 40 { return "Poor" }
+        return "Critical"
+    }
+    
     /// Remove common AI chatbot artifacts from imported content
     func stripAIArtifacts(_ content: String) -> String {
         var cleaned = content
@@ -372,74 +401,119 @@ struct ArticleEditorView: View {
     @State private var isPolishing: Bool = false
     @State private var pendingPolishedResult: PolishedResult? = nil
     @State private var showComparison: Bool = false
+    @State private var showImageAssistant: Bool = false
+    @State private var isAnalyzing: Bool = false
+    @State private var lastAnalysis: AIContentService.ContentAnalysis? = nil
+    
+    enum ActiveAlert: Identifiable {
+        case error(String)
+        case analysis(AIContentService.ContentAnalysis)
+        var id: String {
+            switch self {
+            case .error: return "error"
+            case .analysis: return "analysis"
+            }
+        }
+    }
+    @State private var activeAlert: ActiveAlert?
     
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            VStack(spacing: 0) {
             
-            // Custom Header
-            HStack {
-                Text(selectedTab == 0 ? "Edit Article" : "Preview")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                if isPolishing {
-                    ProgressView("Polishing...")
-                        .scaleEffect(0.8)
-                } else {
-                    Button(action: polishContent) {
-                        Label("Polish with AI", systemImage: "wand.and.stars")
-                    }
-                    .help("Refine formatting and remove meta-text using AI")
-                }
-                
-                Button("Done") {
-                    onClose()
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-            .padding()
-            .background(Color.gray.opacity(0.1))
-            
-            Picker("", selection: $selectedTab) {
-                Text("Edit Source").tag(0)
-                Text("Live Preview").tag(1)
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding()
-            
-            Divider()
-            
-            if selectedTab == 0 {
-                // EDIT MODE
-                ScrollView {
-                    VStack(spacing: 16) {
+                // Custom Header
+                HStack {
+                    Text(selectedTab == 0 ? "Edit Article" : "Preview")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Spacer()
+                    
+                    if let result = pendingPolishedResult {
+                        Text("Reviewing Polish...")
+                            .foregroundColor(.blue)
+                        Button("Discard") {
+                            pendingPolishedResult = nil
+                            showComparison = false
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .foregroundColor(.red)
+                    } else if isPolishing {
+                        ProgressView("Polishing...")
+                            .scaleEffect(0.8)
+                    } else if isAnalyzing {
+                        ProgressView("Analyzing...")
+                            .scaleEffect(0.8)
+                    } else {
+                        Button(action: analyzeContent) {
+                            Label("Check Score", systemImage: "chart.bar")
+                        }
+                        .help("Evaluate current SEO score without changes")
                         
-                        if let score = article.seoScore {
-                            GroupBox(label: Label("AI & SEO Grade", systemImage: "chart.bar.fill")) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack(alignment: .top, spacing: 16) {
-                                        VStack {
-                                            Text("\(score)")
-                                                .font(.system(size: 32, weight: .bold))
-                                                .foregroundColor(score >= 80 ? .green : (score >= 50 ? .orange : .red))
-                                            Text("Score")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        
-                                        Divider()
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Analysis").font(.caption).bold()
-                                            Text(article.seoAnalysis ?? "No analysis.")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
+                        Button(action: polishContent) {
+                            Label("Polish with AI", systemImage: "wand.and.stars")
+                        }
+                        
+                        Button(action: { showImageAssistant = true }) {
+                            Label("Image Magic", systemImage: "photo.on.rectangle")
+                        }
+                        
+                        Button("Done", action: onClose)
+                    }
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                
+                Picker("", selection: $selectedTab) {
+                    Text("Edit Source").tag(0)
+                    Text("Live Preview").tag(1)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding()
+                
+                Divider()
+                
+                if selectedTab == 0 {
+                    // EDIT MODE
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            // Metadata
+                            GroupBox(label: Text("Metadata")) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Text("Title:")
+                                            .frame(width: 60, alignment: .trailing)
+                                        TextField("Article Title", text: $article.title)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .font(.headline)
                                     }
                                     
+                                    HStack {
+                                        Text("Slug:")
+                                            .frame(width: 60, alignment: .trailing)
+                                        TextField("url-slug", text: $article.slug)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                    
+                                    HStack {
+                                        Text("Author:")
+                                            .frame(width: 60, alignment: .trailing)
+                                        TextField("Author Name", text: Binding(
+                                            get: { article.author ?? "Editorial Team" },
+                                            set: { article.author = $0 }
+                                        ))
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                    
+                                    HStack(alignment: .top) {
+                                         Text("Summary:")
+                                            .frame(width: 60, alignment: .trailing)
+                                        TextEditor(text: $article.summary)
+                                            .frame(height: 60)
+                                            .border(Color.gray.opacity(0.2))
+                                    }
+                                    
+                                    // SEO Keywords
                                     if let keywords = article.seoKeywords, !keywords.isEmpty {
                                         Divider()
                                         Text("Ranking Keywords:").font(.caption.bold())
@@ -448,155 +522,254 @@ struct ArticleEditorView: View {
                                             .foregroundColor(.blue)
                                     }
                                     
-                                    if let recommendations = article.seoRecommendations, !recommendations.isEmpty {
+                                    // SEO Recommendations
+                                    if let recs = article.seoRecommendations, !recs.isEmpty {
                                         Divider()
-                                        Text("Path to 100%").font(.caption.bold())
-                                        ForEach(recommendations, id: \.self) { rec in
-                                            HStack(alignment: .top) {
-                                                Image(systemName: "circle").font(.system(size: 8))
-                                                    .padding(.top, 4)
-                                                Text(rec).font(.caption).foregroundColor(.secondary)
-                                            }
+                                        Text("Recommendations:").font(.caption.bold())
+                                        ForEach(recs.prefix(3), id: \.self) { rec in
+                                             Text("• " + rec).font(.caption).foregroundColor(.secondary)
                                         }
                                     }
                                     
-                                    if let conflict = article.seoConflictResolution {
-                                        Divider()
-                                        HStack(alignment: .top) {
-                                            Image(systemName: "exclamationmark.triangle.fill")
-                                                .foregroundColor(.orange)
-                                                .font(.caption)
-                                            VStack(alignment: .leading) {
-                                                Text("Expert Verdict").font(.caption.bold())
-                                                Text(conflict)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                                    .fixedSize(horizontal: false, vertical: true)
+                                    Divider()
+                                    
+                                    HStack {
+                                        Text("Status:")
+                                            .frame(width: 60, alignment: .trailing)
+                                        Picker("", selection: $article.status) {
+                                            ForEach(ArticleStatus.allCases, id: \.self) { status in
+                                                Text(status.rawValue).tag(status)
                                             }
                                         }
-                                        .padding(4)
-                                        .background(Color.orange.opacity(0.1))
-                                        .cornerRadius(4)
+                                        .pickerStyle(SegmentedPickerStyle())
                                     }
-                                }
-                                .padding(8)
-                            }
-                        }
-                        
-                        GroupBox(label: Text("Metadata")) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Text("Title:")
-                                        .frame(width: 60, alignment: .trailing)
-                                    TextField("Title", text: $article.title)
-                                }
-                                HStack {
-                                    Text("Slug:")
-                                        .frame(width: 60, alignment: .trailing)
-                                    TextField("Slug (URL)", text: $article.slug)
-                                }
-                                HStack {
-                                    Text("Author:")
-                                        .frame(width: 60, alignment: .trailing)
-                                    TextField("Author", text: $article.author)
-                                }
-                                HStack(alignment: .top) {
-                                     Text("Summary:")
-                                        .frame(width: 60, alignment: .trailing)
-                                    TextEditor(text: $article.summary)
-                                        .frame(height: 60)
-                                        .border(Color.gray.opacity(0.2))
-                                }
-                                
-                                Divider()
-                                
-                                // Status Picker
-                                HStack {
-                                    Text("Status:")
-                                        .frame(width: 60, alignment: .trailing)
-                                    Picker("", selection: $article.status) {
-                                        ForEach(ArticleStatus.allCases, id: \.self) { status in
-                                            Text(status.rawValue).tag(status)
+                                    
+                                    if article.status == .archived {
+                                        HStack {
+                                            Text("Redirect:")
+                                                .frame(width: 60, alignment: .trailing)
+                                            TextField("https://...", text: Binding(
+                                                get: { article.redirectURL ?? "" },
+                                                set: { article.redirectURL = $0.isEmpty ? nil : $0 }
+                                            ))
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
                                         }
                                     }
-                                    .pickerStyle(SegmentedPickerStyle())
                                 }
-                                
-                                // Redirect URL (shown for archived articles)
-                                if article.status == .archived {
-                                    HStack {
-                                        Text("Redirect:")
-                                            .frame(width: 60, alignment: .trailing)
-                                        TextField("https://... or /new-slug", text: Binding(
-                                            get: { article.redirectURL ?? "" },
-                                            set: { article.redirectURL = $0.isEmpty ? nil : $0 }
-                                        ))
-                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                            }
+                            
+                            // SEO SCORE PANEL (Persistent - shows after Check Score)
+                            if let analysis = lastAnalysis {
+                                GroupBox(label: Label("SEO Analysis", systemImage: "chart.bar.fill")) {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        // Big Score Display
+                                        HStack(spacing: 16) {
+                                            ZStack {
+                                                Circle()
+                                                    .stroke(scoreColor(analysis.score).opacity(0.3), lineWidth: 8)
+                                                    .frame(width: 60, height: 60)
+                                                Circle()
+                                                    .trim(from: 0, to: CGFloat(analysis.score) / 100.0)
+                                                    .stroke(scoreColor(analysis.score), style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                                                    .frame(width: 60, height: 60)
+                                                    .rotationEffect(.degrees(-90))
+                                                Text("\(analysis.score)")
+                                                    .font(.title2.bold())
+                                                    .foregroundColor(scoreColor(analysis.score))
+                                            }
+                                            
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(scoreLabel(analysis.score))
+                                                    .font(.headline)
+                                                    .foregroundColor(scoreColor(analysis.score))
+                                                Text("AI-powered SEO evaluation")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Button(action: { lastAnalysis = nil }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                            .help("Dismiss")
+                                        }
+                                        
+                                        Divider()
+                                        
+                                        // Analysis Text
+                                        Text("Analysis")
+                                            .font(.caption.bold())
+                                        Text(analysis.analysis)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        
+                                        // Recommendations
+                                        if !analysis.recommendations.isEmpty {
+                                            Divider()
+                                            Text("Recommendations")
+                                                .font(.caption.bold())
+                                            ForEach(analysis.recommendations, id: \.self) { rec in
+                                                HStack(alignment: .top, spacing: 6) {
+                                                    Image(systemName: "arrow.right.circle.fill")
+                                                        .foregroundColor(.blue)
+                                                        .font(.caption)
+                                                    Text(rec)
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                        }
                                     }
-                                    Text("Visitors will be redirected to this URL when viewing the archived article.")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .padding(.leading, 68)
+                                    .padding()
+                                }
+                                .background(scoreColor(analysis.score).opacity(0.05))
+                                .cornerRadius(8)
+                            }
+                            // Also show saved article score if no fresh analysis
+                            else if let savedScore = article.seoScore {
+                                GroupBox(label: Label("Last SEO Score", systemImage: "chart.bar")) {
+                                    HStack(spacing: 16) {
+                                        ZStack {
+                                            Circle()
+                                                .stroke(scoreColor(savedScore).opacity(0.3), lineWidth: 6)
+                                                .frame(width: 50, height: 50)
+                                            Circle()
+                                                .trim(from: 0, to: CGFloat(savedScore) / 100.0)
+                                                .stroke(scoreColor(savedScore), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                                                .frame(width: 50, height: 50)
+                                                .rotationEffect(.degrees(-90))
+                                            Text("\(savedScore)")
+                                                .font(.headline)
+                                                .foregroundColor(scoreColor(savedScore))
+                                        }
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(scoreLabel(savedScore))
+                                                .font(.subheadline.bold())
+                                                .foregroundColor(scoreColor(savedScore))
+                                            Text("From last Polish. Click 'Check Score' to refresh.")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
+                                        Spacer()
+                                    }
+                                    .padding(8)
                                 }
                             }
-                            .padding()
+                            
+                            GroupBox(label: Text("Content (HTML)")) {
+                                TextEditor(text: $article.contentHTML)
+                                    .font(.system(.body, design: .monospaced))
+                                    .disableAutocorrection(true)
+                                    .frame(minHeight: 400)
+                                    .padding(4)
+                            }
                         }
-                        
-                        GroupBox(label: Text("Content (HTML)")) {
-                            TextEditor(text: $article.contentHTML)
-                                .font(.system(.body, design: .monospaced))
-                                .disableAutocorrection(true)
-                                .frame(minHeight: 400)
-                                .padding(4)
-                        }
+                        .padding()
                     }
-                    .padding()
+                } else {
+                    // PREVIEW MODE
+                    WebView(html: generatePreviewHTML(article))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                
-            } else {
-                // PREVIEW MODE
-                WebView(html: generatePreviewHTML(article))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .blur(radius: showComparison ? 5 : 0) // Blur editor when comparison is active
+            
+            // COMPARISON OVERLAY
+            if showComparison, let result = pendingPolishedResult {
+                 Color.black.opacity(0.6)
+                     .edgesIgnoringSafeArea(.all)
+                     .onTapGesture { }
+                     .transition(.opacity)
+                 
+                 PolishedResultComparisonView(
+                     originalTitle: article.title,
+                     originalSlug: article.slug,
+                     originalSummary: article.summary,
+                     originalHTML: article.contentHTML,
+                     result: result,
+                     onApply: {
+                         article.title = result.title
+                         article.slug = result.slug
+                         article.summary = result.summary
+                         article.contentHTML = result.html
+                         article.seoScore = result.seo_score
+                         article.seoKeywords = result.keywords
+                         article.seoAnalysis = result.analysis
+                         article.seoRecommendations = result.recommendations
+                         article.seoConflictResolution = result.conflict_resolution
+                         showComparison = false
+                         pendingPolishedResult = nil
+                     },
+                     onCancel: {
+                         showComparison = false
+                         pendingPolishedResult = nil
+                     }
+                 )
+                 .background(Color(NSColor.windowBackgroundColor))
+                 .cornerRadius(12)
+                 .shadow(radius: 50)
+                 .padding(40)
+                 .transition(.scale(scale: 0.95).combined(with: .opacity))
+                 .id("comparison-overlay")
             }
         }
-        // Removed navigationTitle modifier as we have a custom header
-        .sheet(isPresented: $showComparison) {
-            if let result = pendingPolishedResult {
-                PolishedResultComparisonView(
-                    originalTitle: article.title,
-                    originalHTML: article.contentHTML,
-                    result: result,
-                    onApply: {
-                        article.title = result.title // Update Title
-                        article.slug = result.slug   // Update Slug
-                        article.contentHTML = result.html
-                        article.seoScore = result.seo_score
-                        article.seoKeywords = result.keywords
-                        article.seoAnalysis = result.analysis
-                        article.seoRecommendations = result.recommendations
-                        article.seoConflictResolution = result.conflict_resolution
-                        showComparison = false
-                        pendingPolishedResult = nil
-                    },
-                    onCancel: {
-                        showComparison = false
-                        pendingPolishedResult = nil
-                    }
-                )
-            }
+        .sheet(isPresented: $showImageAssistant) {
+            ImageAssistantView(contentHTML: $article.contentHTML, site: site, onClose: { showImageAssistant = false })
         }
-        .alert(isPresented: $showPolishError) {
-            Alert(
-                title: Text("Polish Error"),
-                message: Text(polishError ?? "Unknown error"),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert(item: $activeAlert) { item in
+            switch item {
+            case .error(let msg):
+                return Alert(title: Text("Error"), message: Text(msg), dismissButton: .default(Text("OK")))
+            case .analysis(let analysis):
+                 return Alert(
+                     title: Text("SEO Score: \(analysis.score)"),
+                     message: Text((analysis.analysis) + "\n\nRecommendations:\n" + (analysis.recommendations.joined(separator: "\n- "))),
+                     dismissButton: .default(Text("OK"))
+                 )
+            }
         }
     }
     
-    @State private var polishError: String? = nil
-    @State private var showPolishError: Bool = false
+
     
+    func analyzeContent() {
+        isAnalyzing = true
+        var key = site.openAIKey
+        if site.aiProvider == "Anthropic" { key = site.anthropicKey }
+        if key.isEmpty && site.aiProvider != "Ollama" {
+            activeAlert = .error("No API Key found")
+            isAnalyzing = false
+            return
+        }
+        
+        AIContentService.shared.analyzeContent(
+            contentHTML: article.contentHTML,
+            siteName: site.name,
+            siteTagline: site.tagline,
+            apiKey: key,
+            provider: site.aiProvider,
+            model: site.aiModel,
+            endpointURL: site.ollamaURL
+        ) { result in
+             DispatchQueue.main.async {
+                 isAnalyzing = false
+                 switch result {
+                 case .success(let analysis):
+                     lastAnalysis = analysis
+                     activeAlert = .analysis(analysis)
+                 case .failure(let error):
+                     activeAlert = .error(error.localizedDescription)
+                 }
+             }
+        }
+    }
     func polishContent() {
         isPolishing = true
         var key = site.openAIKey
@@ -608,16 +781,18 @@ struct ArticleEditorView: View {
         print("🚀 [Polish] API Key present: \(!key.isEmpty)")
         print("🚀 [Polish] Content length: \(article.contentHTML.count) chars")
         
-        if key.isEmpty {
+        if key.isEmpty && site.aiProvider != "Ollama" {
             print("❌ [Polish] ERROR: No API key configured!")
             isPolishing = false
-            polishError = "No API key configured. Go to Site Settings and add your OpenAI or Anthropic key."
-            showPolishError = true
+            activeAlert = .error("No API key configured for \(site.aiProvider). Go to Site Settings and add your key.")
             return
         }
         
         AIContentService.shared.polishArticle(
             contentHTML: article.contentHTML,
+            siteName: site.name,
+            siteTagline: site.tagline,
+            existingTitles: site.articles.map { $0.title },
             customRules: site.optimizationRules,
             apiKey: key,
             provider: site.aiProvider,
@@ -634,11 +809,26 @@ struct ArticleEditorView: View {
                     showComparison = true
                 case .failure(let error):
                     print("❌ [Polish] ERROR: \(error.localizedDescription)")
-                    polishError = "Polish failed: \(error.localizedDescription)"
-                    showPolishError = true
+                    activeAlert = .error("Polish failed: \(error.localizedDescription)")
                 }
             }
         }
+    }
+    
+    // MARK: - SEO Score Helpers
+    
+    func scoreColor(_ score: Int) -> Color {
+        if score >= 80 { return .green }
+        if score >= 60 { return .orange }
+        return .red
+    }
+    
+    func scoreLabel(_ score: Int) -> String {
+        if score >= 90 { return "Excellent" }
+        if score >= 80 { return "Good" }
+        if score >= 60 { return "Needs Work" }
+        if score >= 40 { return "Poor" }
+        return "Critical"
     }
     
     func generatePreviewHTML(_ article: Article) -> String {

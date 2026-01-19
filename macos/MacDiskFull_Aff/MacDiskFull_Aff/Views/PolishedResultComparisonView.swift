@@ -9,25 +9,55 @@ import WebKit
 
 struct PolishedResultComparisonView: View {
     let originalTitle: String
+    let originalSlug: String
+    let originalSummary: String
     let originalHTML: String
     let result: PolishedResult
     let onApply: () -> Void
     let onCancel: () -> Void
     
+    @State private var viewMode: Int = 0 // 0: Code, 1: Preview
+    @State private var showFullScreen: Bool = false
+    @Environment(\.presentationMode) var presentationMode
+    
+    var isPresentationMode: Bool = false
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("AI Polish Review")
-                    .font(.headline)
+                Text(isPresentationMode ? "✨ Transformation Review" : "AI Polish Review")
+                    .font(isPresentationMode ? .title : .headline)
+                
                 Spacer()
-                Button("Cancel", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
+                
+                Picker("", selection: $viewMode) {
+                    Text("Code Diff").tag(0)
+                    Text("Visual Preview").tag(1)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .frame(width: 200)
+                
+                Spacer()
+                
+                if !isPresentationMode {
+                    Button(action: { showFullScreen = true }) {
+                        Label("Presentation", systemImage: "macwindow.on.rectangle")
+                    }
+                    .padding(.trailing, 8)
+                    
+                    Button("Cancel", action: onCancel)
+                        .keyboardShortcut(.cancelAction)
+                } else {
+                     Button("Exit Presentation", action: { presentationMode.wrappedValue.dismiss() })
+                        .keyboardShortcut(.cancelAction)
+                }
+                
                 if #available(macOS 12.0, *) {
                     Button("Apply Changes", action: onApply)
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
-                } else {
+                } else { // Fallback
                     Button("Apply Changes", action: onApply)
                         .keyboardShortcut(.defaultAction)
                 }
@@ -35,29 +65,27 @@ struct PolishedResultComparisonView: View {
             .padding()
             .background(Group {
                 if #available(macOS 12.0, *) {
-                     // Modern Material Background
                     Rectangle().fill(.regularMaterial)
                 } else {
                     Color.gray.opacity(0.1)
                 }
             })
             
-            // Metadata Review (New)
-            HStack(alignment: .top, spacing: 20) {
-                VStack(alignment: .leading) {
-                    Text("Current Title").font(.caption).foregroundColor(.secondary)
-                    Text(originalTitle).lineLimit(2).font(.caption)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Image(systemName: "arrow.right").foregroundColor(.blue)
-                
-                VStack(alignment: .leading) {
-                    Text("AI Viral Title").font(.caption).foregroundColor(.blue).bold()
-                    Text(result.title).lineLimit(2).font(.headline)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Metadata Review (Table Style)
+            VStack(spacing: 12) {
+                // Title
+                ComparisonRow(label: "Title", oldVal: originalTitle, newVal: result.title, isBold: true)
+                Divider()
+                // Slug
+                ComparisonRow(label: "Slug", oldVal: originalSlug, newVal: result.slug)
+                Divider()
+                // Summary
+                ComparisonRow(label: "Summary", oldVal: originalSummary, newVal: result.summary)
             }
+            .padding()
+            .background(Color.blue.opacity(0.05))
+            .cornerRadius(8)
+            .padding(.horizontal)
             .padding()
             .background(Color.blue.opacity(0.05))
             .cornerRadius(8)
@@ -68,7 +96,16 @@ struct PolishedResultComparisonView: View {
             HStack(spacing: 40) {
                 ScoreBadge(title: "Original", score: result.original_score)
                 Image(systemName: "arrow.right").font(.title2).foregroundColor(.secondary)
-                ScoreBadge(title: "Polished", score: result.seo_score)
+                VStack {
+                    ScoreBadge(title: "Polished (After)", score: result.seo_score)
+                    if result.html.contains("placehold.co") {
+                        Text("Visuals Pending")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.orange)
+                            .padding(.top, 2)
+                            .help("Score assumes images will be generated")
+                    }
+                }
             }
             .padding()
             
@@ -77,17 +114,28 @@ struct PolishedResultComparisonView: View {
             // Comparison
             HSplitView {
                 VStack(alignment: .leading) {
-                    Text("Original").font(.caption).bold().padding(.leading)
-                    TextEditor(text: .constant(originalHTML))
-                        .font(.system(.body, design: .monospaced))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Text("Original (Before)").font(.caption).bold().padding(.leading)
+                    if viewMode == 0 {
+                        TextEditor(text: .constant(originalHTML))
+                            .font(.system(.body, design: .monospaced))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        WebView(html: generatePreview(html: originalHTML))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
                 .layoutPriority(1)
                 
                 VStack(alignment: .leading) {
-                    Text("Polished").font(.caption).bold().padding(.leading)
-                    WebView(html: generatePreview(html: result.html))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Text("Polished (After)").font(.caption).bold().padding(.leading)
+                    if viewMode == 0 {
+                        TextEditor(text: .constant(result.html))
+                            .font(.system(.body, design: .monospaced))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        WebView(html: generatePreview(html: result.html))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
                 .layoutPriority(1)
             }
@@ -117,8 +165,30 @@ struct PolishedResultComparisonView: View {
             .padding()
             .background(Color.gray.opacity(0.05))
         }
-        .frame(minWidth: 900, minHeight: 700)
+        .frame(minWidth: 1100, idealWidth: 1400, maxWidth: .infinity, minHeight: 800, idealHeight: 1000, maxHeight: .infinity)
+        .sheet(isPresented: $showFullScreen) {
+            PolishedResultComparisonView(
+                originalTitle: originalTitle,
+                originalSlug: originalSlug,
+                originalSummary: originalSummary,
+                originalHTML: originalHTML,
+                result: result,
+                onApply: {
+                    showFullScreen = false
+                    onApply()
+                },
+                onCancel: {
+                    showFullScreen = false
+                },
+                isPresentationMode: true
+            )
+            .preferredColorScheme(.dark)
+        }
     }
+    
+    // Fallback helper for macOS 11 compatibility if needed, 
+    // or just use .sheet if fullScreenCover is unavailable (it's macOS 11+).
+    // .fullScreenCover is macOS 11.0+.
     
     func generatePreview(html: String) -> String {
         return """
@@ -152,6 +222,35 @@ struct ScoreBadge: View {
                     .font(.headline)
                     .foregroundColor(color)
             }
+        }
+    }
+}
+
+struct ComparisonRow: View {
+    let label: String
+    let oldVal: String
+    let newVal: String
+    var isBold: Bool = false
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(label)
+                .font(.caption).bold().foregroundColor(.secondary)
+                .frame(width: 60, alignment: .trailing)
+            
+            Text(oldVal.isEmpty ? "(None)" : oldVal)
+                .font(isBold ? .system(size: 13, weight: .semibold) : .caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(3)
+            
+            Image(systemName: "arrow.right").font(.caption).foregroundColor(.blue)
+            
+            Text(newVal.isEmpty ? "(None)" : newVal)
+                .font(isBold ? .headline : .caption)
+                .foregroundColor(isBold ? .blue : .primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(3)
         }
     }
 }

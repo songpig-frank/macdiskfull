@@ -9,17 +9,145 @@
 import Foundation
 import SwiftUI
 
-/// MVP Theme - just primary color, dark mode only
-struct SiteTheme: Codable {
-    var primaryColor: String // Hex color
+/// Advanced Theme System
+struct SiteTheme: Codable, Identifiable {
+    var id: String { name }
+    var name: String
+    var primaryColor: String   // Hex: Button, Primary links
+    var secondaryColor: String // Hex: Secondary buttons, Borders
+    var accentColor: String    // Hex: Warning, highlights
+    var bgColor: String        // Hex: Main background
+    var cardColor: String      // Hex: GroupBox/Card background
+    var fontFamily: String     // Google Font Name
+    var borderRadius: CGFloat
     
-    init(primaryColor: String = "#9333ea") {
+    init(name: String = "Classic Purple", 
+         primaryColor: String = "#9333ea", 
+         secondaryColor: String = "#7c3aed",
+         accentColor: String = "#fbbf24",
+         bgColor: String = "#0f172a",
+         cardColor: String = "#1e293b",
+         fontFamily: String = "Inter",
+         borderRadius: CGFloat = 12) {
+        self.name = name
         self.primaryColor = primaryColor
+        self.secondaryColor = secondaryColor
+        self.accentColor = accentColor
+        self.bgColor = bgColor
+        self.cardColor = cardColor
+        self.fontFamily = fontFamily
+        self.borderRadius = borderRadius
     }
     
-    static let purple = SiteTheme(primaryColor: "#9333ea")
-    static let blue = SiteTheme(primaryColor: "#3b82f6")
-    static let green = SiteTheme(primaryColor: "#22c55e")
+    // PREMIUM PRESETS
+    static let cinematicDark = SiteTheme(
+        name: "Cinematic Dark",
+        primaryColor: "#9333ea",
+        secondaryColor: "#334155",
+        accentColor: "#f59e0b",
+        bgColor: "#09090b",
+        cardColor: "#18181b",
+        fontFamily: "Outfit",
+        borderRadius: 16
+    )
+    
+    static let cleanTech = SiteTheme(
+        name: "Clean Tech",
+        primaryColor: "#3b82f6",
+        secondaryColor: "#e2e8f0",
+        accentColor: "#10b981",
+        bgColor: "#f8fafc",
+        cardColor: "#ffffff",
+        fontFamily: "Inter",
+        borderRadius: 8
+    )
+    
+    static let midnightBlue = SiteTheme(
+        name: "Midnight Blue",
+        primaryColor: "#38bdf8",
+        secondaryColor: "#1e293b",
+        accentColor: "#facc15",
+        bgColor: "#020617",
+        cardColor: "#0f172a",
+        fontFamily: "Roboto",
+        borderRadius: 12
+    )
+    
+    static let crimsonPro = SiteTheme(
+        name: "Crimson Pro",
+        primaryColor: "#dc2626",
+        secondaryColor: "#451a03",
+        accentColor: "#ea580c",
+        bgColor: "#0c0a09",
+        cardColor: "#1c1917",
+        fontFamily: "Outfit",
+        borderRadius: 0 // Sharp edges
+    )
+    
+    static let forestDeep = SiteTheme(
+        name: "Forest Deep",
+        primaryColor: "#22c55e",
+        secondaryColor: "#14532d",
+        accentColor: "#eab308",
+        bgColor: "#050505",
+        cardColor: "#0a0a0a",
+        fontFamily: "Outfit",
+        borderRadius: 20
+    )
+    
+    static let sunsetVibe = SiteTheme(
+        name: "Sunset Vibe",
+        primaryColor: "#f43f5e",
+        secondaryColor: "#4c0519",
+        accentColor: "#fbbf24",
+        bgColor: "#180a0a",
+        cardColor: "#2d1b1b",
+        fontFamily: "Inter",
+        borderRadius: 14
+    )
+    
+    static let minimalistLight = SiteTheme(
+        name: "Minimalist Light",
+        primaryColor: "#111111",
+        secondaryColor: "#f1f1f1",
+        accentColor: "#3b82f6",
+        bgColor: "#ffffff",
+        cardColor: "#f9f9f9",
+        fontFamily: "Inter",
+        borderRadius: 4
+    )
+    
+    static let electricNight = SiteTheme(
+        name: "Electric Night",
+        primaryColor: "#8b5cf6",
+        secondaryColor: "#4c1d95",
+        accentColor: "#06b6d4",
+        bgColor: "#0a0a0a",
+        cardColor: "#1a1a1a",
+        fontFamily: "Outfit",
+        borderRadius: 12
+    )
+    
+    static let allPresets: [SiteTheme] = [
+        .cinematicDark, .cleanTech, .midnightBlue, .crimsonPro,
+        .forestDeep, .sunsetVibe, .minimalistLight, .electricNight
+    ]
+}
+
+/// Logo shape for appropriate decoration rendering
+enum LogoShape: String, Codable, CaseIterable, Identifiable {
+    case horizontal = "Horizontal"
+    case square = "Square"
+    var id: String { rawValue }
+}
+
+/// Logo decoration styles
+enum LogoDecoration: String, Codable, CaseIterable, Identifiable {
+    case none = "None"
+    case glow = "Soft Glow"
+    case ring = "Ambient Ring"
+    case glass = "Glass Plate"
+    var id: String { rawValue }
 }
 
 /// Supported Affiliate Networks
@@ -111,6 +239,42 @@ struct AffiliateSettings: Codable {
     }
 }
 
+/// MVP Contact & Social Settings
+struct ContactSettings: Codable {
+    var email: String
+    var address: String
+    var twitterURL: String
+    var linkedinURL: String
+    var tiktokURL: String
+    var youtubeURL: String
+    var githubURL: String
+    
+    init(email: String = "", address: String = "", twitterURL: String = "", linkedinURL: String = "", tiktokURL: String = "", youtubeURL: String = "", githubURL: String = "") {
+        self.email = email
+        self.address = address
+        self.twitterURL = twitterURL
+        self.linkedinURL = linkedinURL
+        self.tiktokURL = tiktokURL
+        self.youtubeURL = youtubeURL
+        self.githubURL = githubURL
+    }
+}
+
+/// MVP Legal Pages Settings
+struct LegalSettings: Codable {
+    var includePrivacyPolicy: Bool
+    var includeTermsConditions: Bool
+    var includeEULA: Bool
+    var includeCookiePolicy: Bool
+    
+    init(includePrivacyPolicy: Bool = true, includeTermsConditions: Bool = true, includeEULA: Bool = false, includeCookiePolicy: Bool = true) {
+        self.includePrivacyPolicy = includePrivacyPolicy
+        self.includeTermsConditions = includeTermsConditions
+        self.includeEULA = includeEULA
+        self.includeCookiePolicy = includeCookiePolicy
+    }
+}
+
 /// MVP Site Configuration
 struct Site: Identifiable, Codable {
     let id: UUID
@@ -124,6 +288,24 @@ struct Site: Identifiable, Codable {
     var products: [Product]
     var articles: [Article] // New: Blog Articles
     var optimizationRules: String = "Focus on E-E-A-T (Experience, Expertise, Authoritativeness, and Trustworthiness). Prioritize answer targets for AI search."
+    
+    // New: Contact & Legal (Optional for backward compatibility)
+    var _contact: ContactSettings?
+    var contact: ContactSettings {
+        get { _contact ?? ContactSettings() }
+        set { _contact = newValue }
+    }
+    
+    var _legal: LegalSettings?
+    var legal: LegalSettings {
+        get { _legal ?? LegalSettings() }
+        set { _legal = newValue }
+    }
+    
+    // Logo Decoration Properties
+    var logoShape: LogoShape = .horizontal
+    var logoDecoration: LogoDecoration = .none
+    var logoDecorationColor: String? = nil  // Hex color for glow/ring
     
     // Pro Features
     var usePrettyLinks: Bool
@@ -143,11 +325,16 @@ struct Site: Identifiable, Codable {
         name: String = "My Comparison Site",
         tagline: String = "Compare the best options",
         domain: String = "",
-        theme: SiteTheme = .purple,
+        theme: SiteTheme = .cinematicDark,
         affiliateSettings: AffiliateSettings = AffiliateSettings(),
+        contact: ContactSettings = ContactSettings(),
+        legal: LegalSettings = LegalSettings(),
         products: [Product] = [],
         articles: [Article] = [],
         optimizationRules: String = "Focus on E-E-A-T (Experience, Expertise, Authoritativeness, and Trustworthiness). Prioritize answer targets for AI search.",
+        logoShape: LogoShape = .horizontal,
+        logoDecoration: LogoDecoration = .none,
+        logoDecorationColor: String? = nil,
         usePrettyLinks: Bool = true,
         generateLegalPages: Bool = true,
         aiProvider: String = "OpenAI",
@@ -165,9 +352,14 @@ struct Site: Identifiable, Codable {
         self.domain = domain
         self.theme = theme
         self.affiliateSettings = affiliateSettings
+        self._contact = contact
+        self._legal = legal
         self.products = products
         self.articles = articles
         self.optimizationRules = optimizationRules
+        self.logoShape = logoShape
+        self.logoDecoration = logoDecoration
+        self.logoDecorationColor = logoDecorationColor
         self.usePrettyLinks = usePrettyLinks
         self.generateLegalPages = generateLegalPages
         self.aiProvider = aiProvider
@@ -189,7 +381,19 @@ extension Site {
         name: "MacDiskFull.com",
         tagline: "Is your Mac startup disk almost full?",
         domain: "macdiskfull.com",
-        theme: .purple,
+        theme: .cinematicDark,
+        contact: ContactSettings(
+            email: "support@macdiskfull.com",
+            twitterURL: "https://x.com/macdiskfull",
+            tiktokURL: "https://tiktok.com/@macdiskfull",
+            youtubeURL: "https://youtube.com/@macdiskfull"
+        ),
+        legal: LegalSettings(
+            includePrivacyPolicy: true,
+            includeTermsConditions: true,
+            includeEULA: true, // It's software
+            includeCookiePolicy: true
+        ),
         products: [
             Product(
                 name: "GetDiskSpace",
@@ -553,6 +757,9 @@ extension Site {
                 """,
                 author: "Tech Breakdown"
             )
-        ]
+        ],
+        logoShape: .horizontal,
+        logoDecoration: .glow,
+        logoDecorationColor: "#A855F7"
     )
 }

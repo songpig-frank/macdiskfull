@@ -10,7 +10,8 @@ struct VideoMetadata {
 
 struct PolishedResult: Decodable {
     let title: String
-    let slug: String
+    let slug: String // SEO friendly URL slug
+    let summary: String // Meta description / Excerpt
     let html: String
     let original_score: Int // Score of the input content
     let seo_score: Int // Score of the polished content
@@ -23,10 +24,20 @@ struct PolishedResult: Decodable {
 class AIContentService {
     static let shared = AIContentService()
     
-    enum AIError: Error {
+    enum AIError: Error, LocalizedError {
         case missingKey
         case invalidResponse
         case apiError(String)
+        case jsonParsingFailed(String, String) // Error, RawJSON
+        
+        var errorDescription: String? {
+            switch self {
+            case .missingKey: return "API Key is missing."
+            case .invalidResponse: return "Invalid response from API."
+            case .apiError(let msg): return "API Error: \(msg)"
+            case .jsonParsingFailed(let err, _): return "Failed to parse JSON: \(err)"
+            }
+        }
     }
     
     // Test Connection
@@ -100,27 +111,91 @@ class AIContentService {
     }
 
 
-    func polishArticle(contentHTML: String, customRules: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
+    struct ContentAnalysis: Decodable {
+        let score: Int
+        let analysis: String
+        let recommendations: [String]
+    }
+
+    func analyzeContent(contentHTML: String, siteName: String, siteTagline: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<ContentAnalysis, Error>) -> Void) {
+        let systemPrompt = "You are an elite SEO Evaluator. Output valid JSON only."
+        let userPrompt = """
+        Evaluate the following blog post for the website "\(siteName)" (\(siteTagline)).
+        Return a JSON object:
+        {
+            "score": 0-100,
+            "analysis": "Short explanation of the score.",
+            "recommendations": ["Point 1", "Point 2"]
+        }
+        
+        CRITERIA (Sum max 20 each): 
+        1. Title Impact
+        2. Uniqueness
+        3. Keywords
+        4. Structure (bonus for <img>)
+        5. Engagement (visuals = points)
+        
+        CONTENT:
+        \(contentHTML.prefix(15000))
+        """
+        
+        generateRaw(prompt: userPrompt, system: systemPrompt, provider: provider, apiKey: apiKey, model: model, endpointURL: endpointURL) { result in
+            switch result {
+            case .success(let jsonString):
+                 // Parse
+                 let clean = jsonString.replacingOccurrences(of: "```json", with: "").replacingOccurrences(of: "```", with: "")
+                 if let data = clean.data(using: .utf8),
+                    let analysis = try? JSONDecoder().decode(ContentAnalysis.self, from: data) {
+                     completion(.success(analysis))
+                 } else {
+                     completion(.failure(AIError.jsonParsingFailed("Invalid JSON", clean)))
+                 }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    
+    func polishArticle(contentHTML: String, siteName: String, siteTagline: String, existingTitles: [String], customRules: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
         
         let systemPrompt = "You are an elite SEO & AI Optimization Expert. Output valid JSON only."
+        
+        // Format existing titles
+        let forbiddenTitles = existingTitles.prefix(50).joined(separator: "\n- ")
         
         let userPrompt = """
         Analyze, Optimize, and Polish the following blog post. Return a JSON object with this structure:
         {
           "title": "A Viral, High-CTR, SEO-Optimized Title (Max 60 chars)",
           "slug": "clean-keyword-rich-url-slug",
+          "summary": "Compelling meta description (1-2 sentences)",
           "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
           "seo_score": 95, // The score of your NEW polished version
           "html": "The polished HTML body content",
           "keywords": ["keyword1", "keyword2"], // Target keywords found/added
-          "analysis": "Explanation of changes",
+          "analysis": "EDUCATIONAL BREAKDOWN:\n- PROBLEM: [What was wrong, e.g. Passive voice, generic title, lack of keywords]\n- SOLUTION: [Why the new version is better, e.g. Active verbs, power words, keyword stacking]",
           "recommendations": ["Step 1", "Step 2"],
           "conflict_resolution": "Verdict on SEO vs AI conflicts"
         }
+        
+        CONTEXT:
+        Site Name: \(siteName)
+        Tagline: \(siteTagline)
+        
+        EXISTING TITLES (DO NOT DUPLICATE):
+        - \(forbiddenTitles)
 
         Instructions:
-        1. **Title Magic**: Create a title that triggers curiosity AND ranks for the main topic.
-        2. **REMOVE ALL AI ARTIFACTS**: Delete any of these patterns:
+        1. **Relevance Check**: The target website is "\(siteName)" (\(siteTagline)). 
+           - If the input content is NOT related to this niche, **SCORE IT 0** in `original_score` and `seo_score`.
+           - Do not polish it. Just return the analysis explaining why it is irrelevant.
+        2. **Title Magic**: Create a unique, viral title that ranks. 
+           - CRITICAL: It MUST NOT be in the "EXISTING TITLES" list.
+        3. **Slug & Summary**: 
+           - Generate a SEO-friendly `slug` (kebab-case) from your new title.
+           - Generate a compelling `summary` (1-2 sentences) for the meta description.
+        4. **REMOVE ALL AI ARTIFACTS**: Delete any of these patterns:
            - "Here is the article...", "Here's a...", "I've written..."
            - "I hope this helps!", "Let me know if you need..."
            - "Sources:", "References:", "Citations:"
@@ -128,9 +203,16 @@ class AIContentService {
            - "As an AI...", "As a language model..."
            - Any meta-commentary about the writing process
            - Markdown headers like "# Title" if they duplicate the title field
-        3. **Evaluate First**: Score the INPUT content (0-100) before your changes.
-        4. **Optimize**: Rewrite to score 90+.
-        5. **Visuals**: Add <img src="https://placehold.co/600x400?text=..." alt="..." /> placeholders.
+        5. **Strict Scoring Logic**: 
+           - You MUST calculate `original_score` and `seo_score` by summing these criteria (Max 20 each):
+             a. Title Impact (0-20): CTR potential & curiosity.
+             b. Uniqueness (0-20): Not generic, specific to niche.
+             c. Keywords (0-20): Semantic density without spamming.
+             d. Structure (0-20): Formatting. *BONUS: `<img>` tags count as PRO structure.*
+             e. Engagement (0-20): Hooks & Voice. *VISUALS (<img>) are critical for high score.*
+           - If `<img>` tags are present (even placeholders), `original_score` should be higher.
+           - Explain the score math in the `analysis`.
+        6. **Visuals**: CRITICAL: PRESERVE ALL EXISTING `<img>` TAGS. Additionally, **ADD** `<img src="https://placehold.co/..." ...>` placeholders for every major section or concept that lacks an image.
         
         DYNAMIC ENGINE RULES (User-Defined):
         \(customRules)
@@ -162,8 +244,9 @@ class AIContentService {
                             completion(.success(result))
                        } catch {
                             print("❌ [JSON Parse] Decode error: \(error)")
-                            print("❌ [JSON Parse] JSON was: \(jsonString.prefix(1000))")
-                            completion(.failure(AIError.apiError("JSON parse failed: \(error.localizedDescription)")))
+                            let snippet = String(jsonString.prefix(1000))
+                            print("❌ [JSON Parse] JSON was: \(snippet)")
+                            completion(.failure(AIError.jsonParsingFailed(error.localizedDescription, snippet)))
                        }
                   } else {
                        print("❌ [JSON Parse] Failed to convert to Data")
@@ -178,6 +261,11 @@ class AIContentService {
     
     // Unified Backend
     private func generateRaw(prompt: String, system: String, provider: String, apiKey: String, model: String, endpointURL: String, completion: @escaping (Result<String, Error>) -> Void) {
+        
+        if provider != "Ollama" && apiKey.isEmpty {
+            completion(.failure(AIError.missingKey))
+            return
+        }
         
         if provider == "Anthropic" {
             generateAnthropic(prompt: prompt, system: system, apiKey: apiKey, model: model, completion: completion)
@@ -300,6 +388,54 @@ class AIContentService {
                         completion(.success(text))
                     } else {
                         completion(.failure(AIError.apiError("Invalid Anthropic Response")))
+                    }
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    // MARK: - Image Generation (DALL-E 3)
+    
+    func generateImage(prompt: String, size: String = "1024x1024", apiKey: String, completion: @escaping (Result<String, Error>) -> Void) {
+        let url = URL(string: "https://api.openai.com/v1/images/generations")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // DALL-E 3 Request
+        let body: [String: Any] = [
+            "model": "dall-e-3",
+            "prompt": prompt,
+            "n": 1,
+            "size": size,
+            "quality": "standard", // or "hd"
+            "response_format": "url"
+        ]
+        
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        print("🎨 [DALL-E] Generating: \(prompt.prefix(50))...")
+        
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else { completion(.failure(AIError.invalidResponse)); return }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let errorObj = json["error"] as? [String: Any], let msg = errorObj["message"] as? String {
+                        completion(.failure(AIError.apiError(msg)))
+                        return
+                    }
+                    
+                    if let dataArr = json["data"] as? [[String: Any]],
+                       let first = dataArr.first,
+                       let urlStr = first["url"] as? String {
+                        completion(.success(urlStr))
+                    } else {
+                        completion(.failure(AIError.apiError("No image URL in response")))
                     }
                 }
             } catch {

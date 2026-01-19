@@ -18,6 +18,14 @@ struct WebMakrApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
+                .onAppear {
+                    DispatchQueue.main.async {
+                        if let window = NSApplication.shared.windows.first {
+                            window.setFrame(NSScreen.main?.visibleFrame ?? .zero, display: true)
+                            window.makeKeyAndOrderFront(nil)
+                        }
+                    }
+                }
         }
         .commands {
             // File Menu

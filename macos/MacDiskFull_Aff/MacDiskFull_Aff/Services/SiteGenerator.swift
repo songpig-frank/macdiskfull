@@ -42,7 +42,7 @@ class SiteGeneratorSync {
         try generateIndexHTML(to: outputDir)
         try generateRobotsTxt(to: outputDir)
         try generateSitemapXml(to: outputDir)
-        try generateAssetPlaceholders(to: assetsDir)
+        try copySiteAssets(to: assetsDir)
         try generatePrettyLinks(to: outputDir) // Pro Feature
         try generateLegalPages(to: outputDir)  // Pro Feature
         
@@ -67,7 +67,7 @@ class SiteGeneratorSync {
         try generateIndexHTML(to: outputDir)
         try generateRobotsTxt(to: outputDir)
         try generateSitemapXml(to: outputDir)
-        try generateAssetPlaceholders(to: assetsDir)
+        try copySiteAssets(to: assetsDir)
         try generatePrettyLinks(to: outputDir) // Pro Feature
         try generateLegalPages(to: outputDir)  // Pro Feature
         
@@ -89,7 +89,7 @@ class SiteGeneratorSync {
         }
         
         let url = dir.appendingPathComponent("robots.txt")
-        try content.write(to: url, atomically: true, encoding: .utf8)
+        try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
     }
     
     private func generateSitemapXml(to dir: URL) throws {
@@ -97,7 +97,7 @@ class SiteGeneratorSync {
         guard !site.domain.isEmpty else { return }
         
         let today = dateFormatter.string(from: Date())
-        let content = """
+        var content = """
         <?xml version="1.0" encoding="UTF-8"?>
         <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
           <url>
@@ -105,51 +105,117 @@ class SiteGeneratorSync {
             <lastmod>\(today)</lastmod>
             <priority>1.0</priority>
           </url>
-        </urlset>
         """
         
+        // Articles (Published Only)
+        for article in site.articles where article.status == .published {
+            let slug = article.slug.isEmpty ? "article-\(article.id)" : article.slug
+            let lastMod = dateFormatter.string(from: article.publishedDate)
+            content += """
+            
+              <url>
+                <loc>https://\(site.domain)/articles/\(slug).html</loc>
+                <lastmod>\(lastMod)</lastmod>
+                <priority>0.8</priority>
+              </url>
+            """
+        }
+        
+        // Static Pages
+        for page in ["about", "contact", "disclosure"] {
+            content += """
+            
+              <url>
+                <loc>https://\(site.domain)/\(page).html</loc>
+                <lastmod>\(today)</lastmod>
+                <priority>0.5</priority>
+              </url>
+            """
+        }
+        
+        content += "\n</urlset>"
+        
         let url = dir.appendingPathComponent("sitemap.xml")
-        try content.write(to: url, atomically: true, encoding: .utf8)
+        try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
     }
     
-    private func generateAssetPlaceholders(to dir: URL) throws {
-        // Create a simple placeholder OG image (1x1 transparent PNG)
-        // In real app, you'd include actual images
-        // For MVP, we'll just note that these should be added
+    private func copySiteAssets(to dir: URL) throws {
+        // Handle Logo
+        if let logoURLStr = site.logoURL, logoURLStr.hasPrefix("file://"), let sourceURL = URL(string: logoURLStr) {
+            let ext = sourceURL.pathExtension.isEmpty ? "png" : sourceURL.pathExtension
+            let destURL = dir.appendingPathComponent("logo.\(ext)")
+            try? FileManager.default.removeItem(at: destURL)
+            try? FileManager.default.copyItem(at: sourceURL, to: destURL)
+        }
         
+        // Handle Favicon
+        if let faviconURLStr = site.faviconURL, faviconURLStr.hasPrefix("file://"), let sourceURL = URL(string: faviconURLStr) {
+            let ext = sourceURL.pathExtension.isEmpty ? "png" : sourceURL.pathExtension
+            let destURL = dir.appendingPathComponent("favicon.\(ext)")
+            try? FileManager.default.removeItem(at: destURL)
+            try? FileManager.default.copyItem(at: sourceURL, to: destURL)
+        }
+
         let readme = """
         # Assets Folder
         
-        Add these files:
-        - og-image.png (1200x630 Open Graph image)
-        - favicon.png (32x32 favicon)
-        
-        These will be used in the generated HTML.
+        This folder contains your site assets (logo, favicon, images).
         """
         
         let readmeURL = dir.appendingPathComponent("README.txt")
-        try readme.write(to: readmeURL, atomically: true, encoding: .utf8)
+        try? readme.write(to: readmeURL, atomically: true, encoding: String.Encoding.utf8)
+    }
+
+    func getAssetURL(_ urlString: String?, defaultName: String) -> String {
+        guard let urlString = urlString, !urlString.isEmpty else { return "assets/\(defaultName).png" }
+        if urlString.hasPrefix("http") { return urlString }
+        if urlString.hasPrefix("file://") {
+            let ext = URL(string: urlString)?.pathExtension ?? "png"
+            return "assets/\(defaultName).\(ext)"
+        }
+        return urlString
     }
     
     // MARK: - CSS Generation
     
     private func generateCSS(to dir: URL) throws {
-        let primaryColor = site.theme.primaryColor
+        let theme = site.theme
+        
+        // Simple Luma check for light/dark text
+        func isDark(_ hex: String) -> Bool {
+            let sanitized = hex.replacingOccurrences(of: "#", with: "")
+            guard let rgb = Int(sanitized, radix: 16) else { return true }
+            let r = (rgb >> 16) & 0xFF
+            let g = (rgb >> 8) & 0xFF
+            let b = rgb & 0xFF
+            let luma = 0.299 * Double(r) + 0.587 * Double(g) + 0.114 * Double(b)
+            return luma < 150 // Slightly higher threshold for "darkness"
+        }
+        
+        let textColor = isDark(theme.bgColor) ? "#ffffff" : "#0f172a"
+        let textMuted = isDark(theme.bgColor) ? "#9ca3af" : "#64748b"
+        let borderColor = isDark(theme.bgColor) ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"
+        let navBg = isDark(theme.bgColor) ? "\(theme.bgColor)cc" : "#ffffffee"
         
         let css = """
         /* WebMakr Generated CSS - \(site.name) */
+        @import url('https://fonts.googleapis.com/css2?family=\(theme.fontFamily.replacingOccurrences(of: " ", with: "+")):wght@400;500;600;700&display=swap');
         
         :root {
-            --primary: \(primaryColor);
-            --primary-glow: \(primaryColor)40;
-            --bg-dark: #0a0a0f;
-            --bg-card: rgba(255, 255, 255, 0.03);
-            --border: rgba(255, 255, 255, 0.08);
-            --text: #ffffff;
-            --text-muted: #9ca3af;
+            --primary: \(theme.primaryColor);
+            --primary-glow: \(theme.primaryColor)40;
+            --secondary: \(theme.secondaryColor);
+            --accent: \(theme.accentColor);
+            --bg-dark: \(theme.bgColor);
+            --bg-card: \(theme.cardColor);
+            --border: \(borderColor);
+            --text: \(textColor);
+            --text-muted: \(textMuted);
             --success: #22c55e;
-            --warning: #fbbf24;
+            --warning: var(--accent);
             --danger: #ef4444;
+            --radius: \(theme.borderRadius)px;
+            --logo-deco-color: \(site.logoDecorationColor ?? theme.primaryColor);
         }
         
         *, *::before, *::after {
@@ -163,7 +229,7 @@ class SiteGeneratorSync {
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: '\(theme.fontFamily)', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-dark);
             color: var(--text);
             line-height: 1.6;
@@ -193,7 +259,7 @@ class SiteGeneratorSync {
             left: 0;
             right: 0;
             z-index: 100;
-            background: rgba(10, 10, 15, 0.85);
+            background: \(navBg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
@@ -218,15 +284,53 @@ class SiteGeneratorSync {
             max-width: 60%;
         }
         
+        .logo-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Decoration Shapes */
+        .logo-shape-square {
+            aspect-ratio: 1 / 1;
+            border-radius: 12px;
+        }
+        
+        .logo-shape-horizontal {
+            padding: 4px 12px;
+            border-radius: 9999px;
+        }
+        
+        /* Decoration Styles */
+        .logo-deco-soft-glow {
+            filter: drop-shadow(0 0 8px var(--logo-deco-color));
+        }
+        
+        .logo-deco-ambient-ring {
+            border: 2px solid var(--logo-deco-color);
+            box-shadow: 0 0 15px var(--logo-deco-color);
+        }
+        
+        .logo-deco-glass-plate {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
         .logo span {
             color: var(--primary);
         }
         
         .nav-cta {
             background: var(--primary);
-            color: white;
+            color: #fff;
             padding: 0.5rem 1rem;
-            border-radius: 9999px;
+            border-radius: var(--radius);
             font-weight: 600;
             font-size: 0.875rem;
             text-decoration: none;
@@ -880,7 +984,7 @@ class SiteGeneratorSync {
         """
         
         let cssURL = dir.appendingPathComponent("style.css")
-        try css.write(to: cssURL, atomically: true, encoding: .utf8)
+        try css.write(to: cssURL, atomically: true, encoding: String.Encoding.utf8)
     }
     
     // MARK: - Index HTML Generation
@@ -902,7 +1006,7 @@ class SiteGeneratorSync {
             <meta name="description" content="\(escapeHTML(site.tagline)). Compare the best tools and find the right solution.">
             
             <!-- Favicon -->
-            <link rel="icon" type="image/png" href="assets/favicon.png">
+            <link rel="icon" href="\(getAssetURL(site.faviconURL, defaultName: "favicon"))">
             
             \(generateCanonicalTag())
             
@@ -988,7 +1092,7 @@ class SiteGeneratorSync {
         """
         
         let indexURL = dir.appendingPathComponent("index.html")
-        try html.write(to: indexURL, atomically: true, encoding: .utf8)
+        try html.write(to: indexURL, atomically: true, encoding: String.Encoding.utf8)
     }
     
     // MARK: - Helper Methods
@@ -1007,6 +1111,18 @@ class SiteGeneratorSync {
     }
     
     func formatLogo(_ name: String) -> String {
+        if let logoURL = site.logoURL, !logoURL.isEmpty {
+            let src = getAssetURL(logoURL, defaultName: "logo")
+            let shapeClass = "logo-shape-\(site.logoShape.rawValue.lowercased())"
+            let decoClass = site.logoDecoration != .none ? "logo-deco-\(site.logoDecoration.rawValue.lowercased().replacingOccurrences(of: " ", with: "-"))" : ""
+            
+            return """
+            <div class="logo-container \(shapeClass) \(decoClass)">
+                <img src="\(src)" alt="\(escapeHTML(name))" style="height: 40px; width: auto; vertical-align: middle;">
+            </div>
+            """
+        }
+        
         if name.lowercased().contains(".com") {
             let parts = name.components(separatedBy: ".")
             if parts.count >= 2 {
@@ -1240,7 +1356,7 @@ extension SiteGeneratorSync {
             </html>
             """
             
-            try html.write(to: productDir.appendingPathComponent("index.html"), atomically: true, encoding: .utf8)
+            try html.write(to: productDir.appendingPathComponent("index.html"), atomically: true, encoding: String.Encoding.utf8)
         }
     }
     
@@ -1286,7 +1402,7 @@ extension SiteGeneratorSync {
         </body>
         </html>
         """
-        try privacy.write(to: dir.appendingPathComponent("privacy.html"), atomically: true, encoding: .utf8)
+        try privacy.write(to: dir.appendingPathComponent("privacy.html"), atomically: true, encoding: String.Encoding.utf8)
         
         // Terms
         let terms = """
@@ -1324,7 +1440,7 @@ extension SiteGeneratorSync {
         </body>
         </html>
         """
-        try terms.write(to: dir.appendingPathComponent("terms.html"), atomically: true, encoding: .utf8)
+        try terms.write(to: dir.appendingPathComponent("terms.html"), atomically: true, encoding: String.Encoding.utf8)
     }
     
     // Helper to determine accurate link (Raw vs Pretty)
