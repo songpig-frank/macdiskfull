@@ -41,6 +41,29 @@ class AIContentService {
         self.session = URLSession(configuration: config)
     }
     
+    // DEBUG LOGGING
+    static func logDebug(_ message: String) {
+        let date = Date()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        let timestamp = formatter.string(from: date)
+        let logMessage = "[\(timestamp)] \(message)\n"
+        
+        print("📝 \(logMessage.trimmingCharacters(in: .whitespacesAndNewlines))") // Also print to console
+        
+        let fileURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Documents")
+            .appendingPathComponent("WebMakr_Debug.log")
+            
+        if let handle = try? FileHandle(forWritingTo: fileURL) {
+            handle.seekToEndOfFile()
+            handle.write(logMessage.data(using: .utf8)!)
+            handle.closeFile()
+        } else {
+            try? logMessage.write(to: fileURL, atomically: true, encoding: .utf8)
+        }
+    }
+    
     enum AIError: Error, LocalizedError {
         case missingKey
         case invalidResponse
@@ -256,9 +279,9 @@ class AIContentService {
         
         generateRaw(prompt: userPrompt, system: systemPrompt, provider: provider, apiKey: apiKey, model: model, endpointURL: endpointURL) { result in
              switch result {
+
              case .success(let content):
-                  // DEBUG: Print raw response
-                  print("📥 [AI Raw Response] Length: \(content.count) chars")
+                  AIContentService.logDebug("[polishArticle] Received content from generateRaw: \(content.count) chars")
                   print("📥 [AI Raw Response] First 500 chars:")
                   print(String(content.prefix(500)))
                   
@@ -268,15 +291,15 @@ class AIContentService {
                        jsonString = String(content[start.lowerBound...end.upperBound])
                   }
                   
-                  print("📦 [JSON Extracted] Length: \(jsonString.count) chars")
+                  AIContentService.logDebug("[polishArticle] JSON Extracted: \(jsonString.count) chars")
                   
                   if let data = jsonString.data(using: .utf8) {
                        do {
                             let result = try JSONDecoder().decode(PolishedResult.self, from: data)
-                            print("✅ [JSON Parse] Success!")
+                            AIContentService.logDebug("[polishArticle] parsing SUCCESS")
                             completion(.success(result))
                        } catch {
-                            print("❌ [JSON Parse] Decode error: \(error)")
+                            AIContentService.logDebug("[polishArticle] JSON parsing FAILED: \(error)")
                             let snippet = String(jsonString.prefix(1000))
                             print("❌ [JSON Parse] JSON was: \(snippet)")
                             completion(.failure(AIError.jsonParsingFailed(error.localizedDescription, snippet)))
@@ -335,6 +358,8 @@ class AIContentService {
              baseURL = "https://api.openai.com/v1/chat/completions"
         }
         
+        AIContentService.logDebug("[generateRaw] Starting request to \(baseURL) with model: \(model)")
+        
         guard let url = URL(string: baseURL) else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -350,12 +375,24 @@ class AIContentService {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        session.dataTask(with: request) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(AIError.invalidResponse)); return }
+        AIContentService.logDebug("[generateRaw] Request built, sending via session...")
+        
+        session.dataTask(with: request) { data, response, error in
+            if let error = error {
+                AIContentService.logDebug("[generateRaw] ERROR: \(error.localizedDescription)")
+                completion(.failure(error))
+                return
+            }
+            guard let data = data else {
+                AIContentService.logDebug("[generateRaw] ERROR: No data received")
+                completion(.failure(AIError.invalidResponse))
+                return
+            }
             
-            // Print raw for debug
-             if let str = String(data: data, encoding: .utf8) { print("Raw API: \(str)") }
+            AIContentService.logDebug("[generateRaw] Response received: \(data.count) bytes")
+            if let str = String(data: data, encoding: .utf8) { 
+                print("Raw API: \(str.prefix(500))...") 
+            }
             
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
