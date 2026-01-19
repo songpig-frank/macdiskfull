@@ -481,52 +481,54 @@ struct AIGeneratorView: View {
         URLSession.shared.dataTask(with: request) { data, _, _ in
             defer { DispatchQueue.main.async { self.isSearching = false } }
             
-            guard let data = data, let html = String(data: data, encoding: .utf8) else { return }
+            guard let data = data, let html = String(data: data, encoding: .utf8) else { 
+                print("Network Error")
+                return 
+            }
             
             // Regex to find video data in initial data
-            // Look for "videoRenderer":{...} blocks
             do {
-                // Simplified Regex to capture basic info (Robustness tradeoff for Sandbox safety)
-                let videoIDRegex = try NSRegularExpression(pattern: "\"videoId\":\"(.*?)\"", options: [])
-                let titleRegex = try NSRegularExpression(pattern: "\"title\":\\{\"runs\":\\[\\{\"text\":\"(.*?)\"\\}", options: [])
-                // We will just scan and correlate (approximate)
-                
-                // Better approach: Split by videoRenderer
                 let components = html.components(separatedBy: "videoRenderer\":{\"videoId\":\"")
-                
                 var candidates: [VideoCandidate] = []
                 
                 for (index, component) in components.enumerated() {
-                    if index == 0 { continue } // Skip header
+                    if index == 0 { continue }
                     
                     let vidID = String(component.prefix(11))
-                    
-                    // Extract Title
                     var title = "Unknown Title"
-                    if let titleMatch = component.range(of: "\"title\":{\"runs\":[{\"text\":\"") {
-                        let afterTitle = String(component[titleMatch.upperBound...])
-                        if let endTitle = afterTitle.range(of: "\"}") {
-                            title = String(afterTitle[..<endTitle.lowerBound])
+                    
+                    // Robust title extraction
+                    if let titleStart = component.range(of: "\"title\":{\"runs\":[{\"text\":\"") {
+                        let suffix = String(component[titleStart.upperBound...])
+                        if let titleEnd = suffix.range(of: "\"}") {
+                            title = String(suffix[..<titleEnd.lowerBound])
                         }
                     }
                     
-                    // Filter Shorts/Ads if possible (Usually ID length is 11)
                     if vidID.count == 11 {
                         candidates.append(VideoCandidate(
                             id: vidID,
                             title: title,
-                            channel: "YouTube Source", // Harder to parse simply
-                            published: "Recent",
+                            channel: "YouTube",
+                            published: "", 
                             url: "https://www.youtube.com/watch?v=\(vidID)",
-                            score: 1.0 // Placeholder
+                            score: 1.0
                         ))
                     }
-                    
                     if candidates.count >= 10 { break }
                 }
                 
                 DispatchQueue.main.async {
-                    self.searchResults = candidates
+                    if candidates.isEmpty {
+                         // Fallback check to see if we got blocked
+                         if html.contains("consent") || html.contains("Verify you are human") {
+                             self.videoTitle = "YouTube Blocked Search. Use Manual Link."
+                         } else {
+                             self.searchResults = []
+                         }
+                    } else {
+                        self.searchResults = candidates
+                    }
                 }
             } catch {
                 print("Regex Error")
