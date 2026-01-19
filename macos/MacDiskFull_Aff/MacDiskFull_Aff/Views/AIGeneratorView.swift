@@ -541,10 +541,6 @@ struct AIGeneratorView: View {
         isSearching = true
         searchResults = []
         
-    func findBestVideos() {
-        isSearching = true
-        searchResults = []
-        
         guard let encodedQuery = topic.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://www.youtube.com/results?search_query=\(encodedQuery)") else {
             isSearching = false
