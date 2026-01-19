@@ -212,7 +212,11 @@ class AIContentService {
              e. Engagement (0-20): Hooks & Voice. *VISUALS (<img>) are critical for high score.*
            - If `<img>` tags are present (even placeholders), `original_score` should be higher.
            - Explain the score math in the `analysis`.
-        6. **Visuals**: CRITICAL: PRESERVE ALL EXISTING `<img>` TAGS. Additionally, **ADD** `<img src="https://placehold.co/..." ...>` placeholders for every major section or concept that lacks an image.
+        6. **Visuals (CRITICAL)**: 
+           - **PRESERVE ALL EXISTING `<img>` TAGS EXACTLY AS IS**. Do not change their src, alt, class, or position.
+           - Treat `<img>` tags as Golden Content.
+           - If using placeholders, keep them. If using real images, keep them.
+           - Only add NEW placeholders if a section is completely text-heavy and needs visual break.
         
         DYNAMIC ENGINE RULES (User-Defined):
         \(customRules)
