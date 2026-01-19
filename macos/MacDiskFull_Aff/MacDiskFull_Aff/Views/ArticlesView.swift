@@ -114,7 +114,8 @@ struct ArticlesView: View {
         site.articles.append(newArticle)
         editingArticleId = newArticle.id // Auto-open
     }
-}
+    
+
 
     func handleDrop(providers: [NSItemProvider]) -> Bool {
         for provider in providers {
@@ -228,6 +229,8 @@ struct ArticlesView: View {
         res = res.replacingOccurrences(of: "\\[(.*?)\\]\\((.*?)\\)", with: "<a href=\"$2\">$1</a>", options: .regularExpression)
         return res
     }
+}
+
 }
 
 // UUID wrapper for Sheet .item
