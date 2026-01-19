@@ -101,8 +101,18 @@ def main():
                 "url": video.get('link')
             })
             
-    # Sort by Score Descending
-    candidates.sort(key=lambda x: x['score'], reverse=True)
+    # If no verified candidates found, return raw results (fallback) so user sees SOMETHING
+    if not candidates:
+        for video in results.get('result', [])[:5]:
+             candidates.append({
+                "id": video.get('id'),
+                "title": video.get('title') + " (Unverified)",
+                "channel": video.get('channel', {}).get('name'),
+                "views": video.get('viewCount', {}).get('text'),
+                "published": video.get('publishedTime'),
+                "score": 0,
+                "url": video.get('link')
+            })
     
     print(json.dumps(candidates[:5], ensure_ascii=False))
 
