@@ -748,6 +748,7 @@ struct ArticleEditorView: View {
                          article.contentHTML = result.html
                          article.seoScore = result.seo_score
                           article.aiQualityScore = result.marketing_score
+                          article.localSeoScore = result.local_seo_score
                          article.seoKeywords = result.keywords
                          article.seoAnalysis = result.analysis
                          article.seoRecommendations = result.recommendations
@@ -856,6 +857,7 @@ struct ArticleEditorView: View {
                           original_score: 0, 
                           seo_score: analysis.score, 
                           marketing_score: analysis.marketing_score, 
+                          local_seo_score: analysis.local_seo_score, 
                           score_breakdown: analysis.score_breakdown, 
                           keywords: [], 
                           analysis: analysis.analysis, 
@@ -929,6 +931,9 @@ struct ArticleEditorView: View {
                 siteTagline: site.tagline,
                 existingTitles: site.articles.map { $0.title },
                 customRules: site.optimizationRules,
+                enableLocalSEO: site.enableLocalSEO,
+                businessType: site.businessType,
+                businessLocation: site.businessLocation,
                 apiKey: key,
                 provider: site.aiProvider,
                 model: site.aiModel,

@@ -24,6 +24,7 @@ struct PolishedResult: Decodable {
     let original_score: Int // Score of the input content
     let seo_score: Int // Technical SEO Score
     let marketing_score: Int // Creative/Marketing Impact Score
+    let local_seo_score: Int? // Local Business Score
     let score_breakdown: [ScoreComponent]? // Detailed breakdown
     let keywords: [String]
     let analysis: String
@@ -160,6 +161,7 @@ class AIContentService {
     struct ContentAnalysis: Decodable {
         let score: Int // Technical SEO
         let marketing_score: Int // Creative/Marketing
+        let local_seo_score: Int? // Local Business Score
         let score_breakdown: [ScoreComponent]?
         let analysis: String
         let recommendations: [String]
@@ -172,7 +174,8 @@ class AIContentService {
         Return a JSON object:
         {
             "score": 0-100, // Technical SEO Score
-            "marketing_score": 0-100, // AI Visibility Score (Likelihood to be cited by LLMs)
+            "marketing_score": 0-100, // AI Visibility Score
+            "local_seo_score": 0-100, // Local SEO Score (if relevant)
             "score_breakdown": [
                 { "criterion": "LLM Optimization", "score": 15, "max_score": 20, "reasoning": "Clear direct answers." }
             ],
@@ -218,9 +221,21 @@ class AIContentService {
     }
     
     
-    func polishArticle(contentHTML: String, siteName: String, siteTagline: String, existingTitles: [String], customRules: String, apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
+    func polishArticle(contentHTML: String, siteName: String, siteTagline: String, existingTitles: [String], customRules: String, enableLocalSEO: Bool = false, businessType: String = "", businessLocation: String = "", apiKey: String, provider: String = "OpenAI", model: String = "gpt-4o", endpointURL: String = "", completion: @escaping (Result<PolishedResult, Error>) -> Void) {
         
-        AIContentService.logDebug("[polishArticle] Initiated. Provider: \(provider), Model: \(model)")
+        AIContentService.logDebug("[polishArticle] Initiated. Provider: \(provider), Model: \(model). LocalSEO: \(enableLocalSEO)")
+        
+        var localInstructions = ""
+        if enableLocalSEO {
+            localInstructions = """
+            
+            9. **LOCAL SEO MODE (ENABLED)**:
+               - Target: \(businessType) in \(businessLocation).
+               - **Keywords**: Optimize for "Best \(businessType) in \(businessLocation)".
+               - **NAP**: Ensure location (\(businessLocation)) is mentioned naturally in headers/intro.
+               - **Score**: Calculate `local_seo_score` (0-100) based on local relevance. If disabled, return 0.
+            """
+        }
         
         let systemPrompt = "You are an elite SEO & AI Optimization Expert. Output valid JSON only."
         
@@ -236,6 +251,7 @@ class AIContentService {
           "original_score": 45, // EVALUATE the input content score (0-100) BEFORE changes
           "seo_score": 95, // Technical SEO Score
           "marketing_score": 92, // AI Visibility / LLM Citation Score
+          "local_seo_score": 85, // Local Optimization Score (if applicable)
           "score_breakdown": [
             { "criterion": "Title & Hooks", "score": 9, "max_score": 10, "reasoning": "Great clickability" },
             { "criterion": "Content Depth", "score": 18, "max_score": 20, "reasoning": "Comprehensive" },
@@ -304,6 +320,7 @@ class AIContentService {
            - **Conflict Resolution**: If SEO wants length but AI wants conciseness, use a **"Direct Answer" box/paragraph** followed by the detailed SEO explanation.
            
         \(customRules)
+        \(localInstructions)
         
         Content:
         \(contentHTML.prefix(25000))

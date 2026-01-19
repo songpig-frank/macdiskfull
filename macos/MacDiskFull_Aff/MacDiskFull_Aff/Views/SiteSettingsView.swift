@@ -126,6 +126,21 @@ struct SiteSettingsView: View {
                         }
                     }
                     
+                    // 3. LOCAL BUSINESS MODE
+                    FormGroupBox(title: "Local Business Mode") {
+                        Toggle("Enable Local SEO Optimization", isOn: $site.enableLocalSEO)
+                            .toggleStyle(SwitchToggleStyle())
+                        
+                        if site.enableLocalSEO {
+                            Divider()
+                            LabeledTextField(label: "Business Type", text: $site.businessType, placeholder: "e.g. Plumber, HVAC, Lawyer")
+                            LabeledTextField(label: "Location", text: $site.businessLocation, placeholder: "e.g. Austin, TX")
+                            Text("AI will prioritize local rankings, NAP consistency, and 'near me' keywords.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                     // 3. INTEGRATIONS (AI + Affiliates)
                     FormGroupBox(title: "Integrations") {
                         // AI Provider - Full Configuration

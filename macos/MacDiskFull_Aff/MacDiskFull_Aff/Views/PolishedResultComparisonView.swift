@@ -173,6 +173,20 @@ struct PolishedResultComparisonView: View {
                                                 .bold()
                                                 .foregroundColor(.purple.opacity(0.8))
                                         }
+                                        
+                                        if let local = result.local_seo_score, local > 0 {
+                                            Rectangle().frame(width: 1, height: 30).foregroundColor(Color.gray.opacity(0.2))
+                                            
+                                            VStack(spacing: 0) {
+                                                Text("\(local)")
+                                                    .font(.system(size: 36, weight: .heavy))
+                                                    .foregroundColor(.orange)
+                                                Text("Local")
+                                                    .font(.caption)
+                                                    .bold()
+                                                    .foregroundColor(.orange.opacity(0.8))
+                                            }
+                                        }
                                     }
                                     Text("Optimized")
                                         .font(.caption2)

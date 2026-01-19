@@ -205,6 +205,7 @@ struct Article: Identifiable, Codable {
     // SEO & AI Analysis
     var seoScore: Int?
     var aiQualityScore: Int? // New: Marketing/Engagement Score
+    var localSeoScore: Int? // Local Business Score (if enabled)
     var seoKeywords: [String]?
     var seoAnalysis: String?
     var seoRecommendations: [String]?
@@ -213,7 +214,7 @@ struct Article: Identifiable, Codable {
     // History
     var versionHistory: [ArticleVersion] = []
     
-    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", status: ArticleStatus = .draft, redirectURL: String? = nil, seoScore: Int? = nil, aiQualityScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil, versionHistory: [ArticleVersion] = []) {
+    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", status: ArticleStatus = .draft, redirectURL: String? = nil, seoScore: Int? = nil, aiQualityScore: Int? = nil, localSeoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil, versionHistory: [ArticleVersion] = []) {
         self.id = id
         self.title = title
         self.slug = slug
@@ -226,6 +227,7 @@ struct Article: Identifiable, Codable {
         self.redirectURL = redirectURL
         self.seoScore = seoScore
         self.aiQualityScore = aiQualityScore
+        self.localSeoScore = localSeoScore
         self.seoKeywords = seoKeywords
         self.seoAnalysis = seoAnalysis
         self.seoRecommendations = seoRecommendations
@@ -323,6 +325,11 @@ struct Site: Identifiable, Codable {
     var logoDecoration: LogoDecoration = .none
     var logoDecorationColor: String? = nil  // Hex color for glow/ring
     
+    // Local Business Mode
+    var enableLocalSEO: Bool = false
+    var businessType: String = "" // e.g. "Plumber"
+    var businessLocation: String = "" // e.g. "Austin, TX"
+    
     // Pro Features
     var usePrettyLinks: Bool
     var generateLegalPages: Bool
@@ -360,6 +367,9 @@ struct Site: Identifiable, Codable {
         anthropicKey: String = "",
         geminiKey: String = "",
         ollamaURL: String = "http://localhost:11434",
+        enableLocalSEO: Bool = false,
+        businessType: String = "",
+        businessLocation: String = "",
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -386,6 +396,9 @@ struct Site: Identifiable, Codable {
         self.anthropicKey = anthropicKey
         self.geminiKey = geminiKey
         self.ollamaURL = ollamaURL
+        self.enableLocalSEO = enableLocalSEO
+        self.businessType = businessType
+        self.businessLocation = businessLocation
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
