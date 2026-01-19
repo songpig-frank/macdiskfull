@@ -213,10 +213,13 @@ class AIContentService {
            - If `<img>` tags are present (even placeholders), `original_score` should be higher.
            - Explain the score math in the `analysis`.
         6. **Visuals (CRITICAL)**: 
-           - **PRESERVE ALL EXISTING `<img>` TAGS EXACTLY AS IS**. Do not change their src, alt, class, or position.
-           - Treat `<img>` tags as Golden Content.
-           - If using placeholders, keep them. If using real images, keep them.
-           - Only add NEW placeholders if a section is completely text-heavy and needs visual break.
+           - **EXISTING IMAGES**: Preserve exact `<img>` tags. Do not touch them.
+           - **MISSING IMAGES**: You MUST insert `<img src="https://placehold.co/600x400/png" alt="PROMPT: Describe image here" />` placeholders where potential images should go.
+           - **RULE**: Every 300-400 words (or every major section) NEEDS a visual.
+           - **The User doesn't know what images to add - YOU must tell them via these placeholders.**
+        7. **Score**:
+           - Calculate score assuming these placeholders will be real images.
+           - High scores REQUIRE this visual structure.
         
         DYNAMIC ENGINE RULES (User-Defined):
         \(customRules)
