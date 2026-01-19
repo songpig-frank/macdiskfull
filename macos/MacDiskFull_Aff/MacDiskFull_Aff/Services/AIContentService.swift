@@ -142,19 +142,35 @@ class AIContentService {
         generateRaw(prompt: userPrompt, system: systemPrompt, provider: provider, apiKey: apiKey, model: model, endpointURL: endpointURL) { result in
              switch result {
              case .success(let content):
+                  // DEBUG: Print raw response
+                  print("📥 [AI Raw Response] Length: \(content.count) chars")
+                  print("📥 [AI Raw Response] First 500 chars:")
+                  print(String(content.prefix(500)))
+                  
                   // Try to find JSON block
                   var jsonString = content
                   if let start = content.range(of: "{"), let end = content.range(of: "}", options: .backwards) {
                        jsonString = String(content[start.lowerBound...end.upperBound])
                   }
                   
-                  if let data = jsonString.data(using: .utf8),
-                     let result = try? JSONDecoder().decode(PolishedResult.self, from: data) {
-                       completion(.success(result))
+                  print("📦 [JSON Extracted] Length: \(jsonString.count) chars")
+                  
+                  if let data = jsonString.data(using: .utf8) {
+                       do {
+                            let result = try JSONDecoder().decode(PolishedResult.self, from: data)
+                            print("✅ [JSON Parse] Success!")
+                            completion(.success(result))
+                       } catch {
+                            print("❌ [JSON Parse] Decode error: \(error)")
+                            print("❌ [JSON Parse] JSON was: \(jsonString.prefix(1000))")
+                            completion(.failure(AIError.apiError("JSON parse failed: \(error.localizedDescription)")))
+                       }
                   } else {
+                       print("❌ [JSON Parse] Failed to convert to Data")
                        completion(.failure(AIError.apiError("Failed to parse JSON response")))
                   }
              case .failure(let error):
+                  print("❌ [AI Request] Failed: \(error)")
                   completion(.failure(error))
              }
         }

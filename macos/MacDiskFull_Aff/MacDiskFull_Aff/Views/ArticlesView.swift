@@ -507,12 +507,34 @@ struct ArticleEditorView: View {
                 )
             }
         }
+        .alert("Polish Error", isPresented: $showPolishError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(polishError ?? "Unknown error")
+        }
     }
+    
+    @State private var polishError: String? = nil
+    @State private var showPolishError: Bool = false
     
     func polishContent() {
         isPolishing = true
         var key = site.openAIKey
         if site.aiProvider == "Anthropic" { key = site.anthropicKey }
+        
+        // DEBUG: Log what we're sending
+        print("🚀 [Polish] Starting Polish with AI...")
+        print("🚀 [Polish] Provider: \(site.aiProvider), Model: \(site.aiModel)")
+        print("🚀 [Polish] API Key present: \(!key.isEmpty)")
+        print("🚀 [Polish] Content length: \(article.contentHTML.count) chars")
+        
+        if key.isEmpty {
+            print("❌ [Polish] ERROR: No API key configured!")
+            isPolishing = false
+            polishError = "No API key configured. Go to Site Settings and add your OpenAI or Anthropic key."
+            showPolishError = true
+            return
+        }
         
         AIContentService.shared.polishArticle(
             contentHTML: article.contentHTML,
@@ -526,11 +548,14 @@ struct ArticleEditorView: View {
                 isPolishing = false
                 switch result {
                 case .success(let refined):
+                    print("✅ [Polish] Success! Title: \(refined.title)")
+                    print("✅ [Polish] Score: \(refined.original_score) → \(refined.seo_score)")
                     pendingPolishedResult = refined
                     showComparison = true
                 case .failure(let error):
-                    print("Polish error: \(error.localizedDescription)")
-
+                    print("❌ [Polish] ERROR: \(error.localizedDescription)")
+                    polishError = "Polish failed: \(error.localizedDescription)"
+                    showPolishError = true
                 }
             }
         }
