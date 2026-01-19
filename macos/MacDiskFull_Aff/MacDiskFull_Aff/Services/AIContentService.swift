@@ -15,7 +15,7 @@ struct PolishedResult: Decodable {
     let keywords: [String]
     let analysis: String
     let recommendations: [String] // Steps to reach 100%
-    let conflict_resolution: String // Advice if SEO and AI conflict
+    let conflict_resolution: String? // Advice if SEO and AI conflict
 }
 
 class AIContentService {

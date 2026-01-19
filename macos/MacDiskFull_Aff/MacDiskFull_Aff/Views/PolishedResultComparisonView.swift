@@ -23,7 +23,7 @@ struct PolishedResultComparisonView: View {
                 Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
                 Button("Apply Changes", action: onApply)
-                    .buttonStyle(.borderedProminent)
+                    // .buttonStyle(.borderedProminent) - macOS 12+ only
                     .keyboardShortcut(.defaultAction)
             }
             .padding()

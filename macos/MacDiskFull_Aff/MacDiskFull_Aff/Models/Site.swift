@@ -108,6 +108,7 @@ struct Site: Identifiable, Codable {
     var affiliateSettings: AffiliateSettings
     var products: [Product]
     var articles: [Article] // New: Blog Articles
+    var optimizationRules: String = "Focus on E-E-A-T (Experience, Expertise, Authoritativeness, and Trustworthiness). Prioritize answer targets for AI search."
     
     // Pro Features
     var usePrettyLinks: Bool
