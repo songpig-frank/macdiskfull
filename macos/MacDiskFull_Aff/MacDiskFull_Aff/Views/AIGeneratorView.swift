@@ -538,7 +538,10 @@ struct AIGeneratorView: View {
         isSearching = true
         searchResults = []
         
-        // Native Swift Implementation to bypass App Sandbox Constraints
+    func findBestVideos() {
+        isSearching = true
+        searchResults = []
+        
         guard let encodedQuery = topic.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://www.youtube.com/results?search_query=\(encodedQuery)") else {
             isSearching = false
@@ -550,60 +553,82 @@ struct AIGeneratorView: View {
         request.addValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
         
         URLSession.shared.dataTask(with: request) { data, _, _ in
-            defer { DispatchQueue.main.async { self.isSearching = false } }
-            
-            guard let data = data, let html = String(data: data, encoding: .utf8) else { 
-                print("Network Error")
-                return 
+            guard let data = data, let html = String(data: data, encoding: .utf8) else {
+                defer { DispatchQueue.main.async { self.isSearching = false } }
+                return
             }
             
-            // Regex to find video data in initial data
-            do {
-                let components = html.components(separatedBy: "videoRenderer\":{\"videoId\":\"")
-                var candidates: [VideoCandidate] = []
+            // 1. Initial Parse
+            let components = html.components(separatedBy: "videoRenderer\":{\"videoId\":\"")
+            var potentialCandidates: [VideoCandidate] = []
+            
+            for (index, component) in components.enumerated() {
+                if index == 0 { continue }
                 
-                for (index, component) in components.enumerated() {
-                    if index == 0 { continue }
-                    
-                    let vidID = String(component.prefix(11))
-                    var title = "Unknown Title"
-                    
-                    // Robust title extraction
-                    if let titleStart = component.range(of: "\"title\":{\"runs\":[{\"text\":\"") {
-                        let suffix = String(component[titleStart.upperBound...])
-                        if let titleEnd = suffix.range(of: "\"}") {
-                            title = String(suffix[..<titleEnd.lowerBound])
-                        }
+                let vidID = String(component.prefix(11))
+                var title = "Unknown Title"
+                
+                if let titleStart = component.range(of: "\"title\":{\"runs\":[{\"text\":\"") {
+                    let suffix = String(component[titleStart.upperBound...])
+                    if let titleEnd = suffix.range(of: "\"}") {
+                        title = String(suffix[..<titleEnd.lowerBound])
                     }
-                    
-                    if vidID.count == 11 {
-                        candidates.append(VideoCandidate(
-                            id: vidID,
-                            title: title,
-                            channel: "YouTube",
-                            published: "", 
-                            url: "https://www.youtube.com/watch?v=\(vidID)",
-                            score: 1.0
-                        ))
-                    }
-                    if candidates.count >= 10 { break }
                 }
                 
-                DispatchQueue.main.async {
-                    if candidates.isEmpty {
-                         // Fallback check to see if we got blocked
-                         if html.contains("consent") || html.contains("Verify you are human") {
-                             self.videoTitle = "YouTube Blocked Search. Use Manual Link."
-                         } else {
-                             self.searchResults = []
-                         }
-                    } else {
-                        self.searchResults = candidates
-                    }
+                if vidID.count == 11 {
+                    potentialCandidates.append(VideoCandidate(
+                        id: vidID,
+                        title: title,
+                        channel: "YouTube",
+                        published: "",
+                        url: "https://www.youtube.com/watch?v=\(vidID)",
+                        score: 1.0
+                    ))
                 }
-            } catch {
-                print("Regex Error")
+                if potentialCandidates.count >= 8 { break } // Limit to 8 checks
             }
+            
+            // 2. Parallel Verification
+            let group = DispatchGroup()
+            var verifiedCandidates: [VideoCandidate] = []
+            let lock = NSLock()
+            
+            for candidate in potentialCandidates {
+                group.enter()
+                self.checkTranscriptAvailability(videoID: candidate.id) { available in
+                    if available {
+                        lock.lock()
+                        verifiedCandidates.append(candidate)
+                        lock.unlock()
+                    }
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                self.isSearching = false
+                self.searchResults = verifiedCandidates
+                if verifiedCandidates.isEmpty {
+                     self.videoTitle = "No videos with transcripts found."
+                }
+            }
+        }.resume()
+    }
+    
+    func checkTranscriptAvailability(videoID: String, completion: @escaping (Bool) -> Void) {
+        guard let url = URL(string: "https://www.youtube.com/watch?v=\(videoID)") else {
+            completion(false); return
+        }
+        var request = URLRequest(url: url)
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data, let html = String(data: data, encoding: .utf8) else {
+                completion(false); return
+            }
+            // Check for captionTracks present in the video page
+            let hasCaptions = html.contains("\"captionTracks\":[{\"baseUrl\":\"")
+            completion(hasCaptions)
         }.resume()
     }
     
