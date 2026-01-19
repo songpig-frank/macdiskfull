@@ -7,7 +7,7 @@ try:
     from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 except ImportError:
     print(json.dumps({"error": "Missing library. Run: pip3 install youtube-transcript-api"}), file=sys.stdout)
-    sys.exit(0) # Exit 0 so Swift parses the JSON
+    sys.exit(0)
 
 def video_id_from_url(url: str) -> str:
     u = url.strip()
@@ -40,11 +40,9 @@ def main():
         transcript_list = YouTubeTranscriptApi.list_transcripts(vid)
         
         # 2. Smart Logic: Prefer English (Manual > Auto), else Translate
-        # Try finding english manually created
         try:
             transcript = transcript_list.find_manually_created_transcript(['en', 'en-US', 'en-GB'])
         except:
-            # Try finding english auto generated
             try:
                 transcript = transcript_list.find_generated_transcript(['en', 'en-US', 'en-GB'])
             except:
@@ -69,7 +67,6 @@ def main():
         }, ensure_ascii=False))
 
     except Exception as e:
-        # Catch-all
         print(json.dumps({"error": str(e)}), file=sys.stdout)
 
 if __name__ == "__main__":

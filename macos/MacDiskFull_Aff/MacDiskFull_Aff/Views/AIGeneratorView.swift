@@ -13,6 +13,18 @@ struct AIGeneratorView: View {
     @State private var videoChannel = ""
     @State private var videoDate = ""
     
+    @State private var isSearching = false
+    @State private var searchResults: [VideoCandidate] = []
+    
+    struct VideoCandidate: Decodable, Identifiable {
+        var id: String
+        var title: String
+        var channel: String
+        var published: String
+        var url: String
+        var score: Double
+    }
+    
     @State private var isGenerating = false
     @State private var errorMessage = ""
     @State private var connectionStatus = ""
@@ -84,10 +96,39 @@ struct AIGeneratorView: View {
                 
                 Section(header: Text("Step 1: Research")) {
                     TextField("Topic", text: $topic)
+                    
+                    if isSearching {
+                        ProgressView("Finding best videos with transcripts...")
+                    } else {
+                        Button("Find Best Videos (Auto-Ranked)") {
+                            findBestVideos()
+                        }
+                    }
+                    
+                    if !searchResults.isEmpty {
+                        List(searchResults) { video in
+                            Button(action: { selectVideo(video) }) {
+                                VStack(alignment: .leading) {
+                                    Text(video.title).font(.headline)
+                                    HStack {
+                                        Text(video.channel).font(.subheadline).bold()
+                                        Spacer()
+                                        Text(video.published).font(.caption).foregroundColor(.secondary)
+                                    }
+                                    Text("Verified Transcript Available").font(.caption2).foregroundColor(.green)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .frame(height: 200)
+                    }
+                    
                     Link(destination: URL(string: "https://www.youtube.com/results?search_query=\(topic.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")!) {
                         HStack {
                             Image(systemName: "magnifyingglass")
-                            Text("Search YouTube for '\(topic)'")
+                            Text("Manual Search on YouTube")
+                                .font(.caption)
                         }
                     }
                 }
@@ -420,6 +461,58 @@ struct AIGeneratorView: View {
                 DispatchQueue.main.async { self.fetchStatus = "Exec Failed: \(error.localizedDescription)" }
             }
         }
+    }
+    
+    func findBestVideos() {
+        isSearching = true
+        searchResults = []
+        
+        let shellPath = "/bin/sh"
+        let scriptPath = "/Users/nc/macdiskfull_affiliate/macos/MacDiskFull_Aff/MacDiskFull_Aff/Services/scripts/find_videos.py"
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: shellPath)
+            let command = "python3 \"\(scriptPath)\" \"\(self.topic)\""
+            task.arguments = ["-c", command]
+            
+            var env = ProcessInfo.processInfo.environment
+            env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+            task.environment = env
+            
+            let outPipe = Pipe()
+            task.standardOutput = outPipe
+            
+            do {
+                try task.run()
+                task.waitUntilExit()
+                
+                let data = outPipe.fileHandleForReading.readDataToEndOfFile()
+                if let jsonStr = String(data: data, encoding: .utf8),
+                   let jsonData = jsonStr.data(using: .utf8) {
+                    let candidates = try? JSONDecoder().decode([VideoCandidate].self, from: jsonData)
+                    DispatchQueue.main.async {
+                        self.isSearching = false
+                        self.searchResults = candidates ?? []
+                    }
+                } else {
+                     DispatchQueue.main.async { self.isSearching = false }
+                }
+            } catch {
+                DispatchQueue.main.async { self.isSearching = false }
+            }
+        }
+    }
+    
+    func selectVideo(_ video: VideoCandidate) {
+        self.urlString = video.url
+        self.videoTitle = video.title
+        self.videoChannel = video.channel
+        self.videoDate = video.published
+        self.searchResults = []
+        
+        // Auto-Fetch Transcript
+        fetchTranscriptPython()
     }
     
     func generate() {
