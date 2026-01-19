@@ -365,15 +365,21 @@ struct AIGeneratorView: View {
             return
         }
         
-        // 2. Resolve Python Path
-        // In a real DMG, you might bundle a python runtime or check various paths
-        // For now, we trust /usr/bin/python3
-        let pythonPath = "/usr/bin/python3"
+        // 2. Resolve Python Path via Shell to avoid xcrun shim issues and find Homebrew/User python
+        let shellPath = "/bin/sh"
         
         DispatchQueue.global(qos: .userInitiated).async {
             let task = Process()
-            task.executableURL = URL(fileURLWithPath: pythonPath)
-            task.arguments = [finalScriptPath, self.urlString]
+            task.executableURL = URL(fileURLWithPath: shellPath)
+            // Use 'python3' from PATH (could be /usr/local/bin or /opt/homebrew/bin)
+            // We quote the arguments to be safe
+            let command = "python3 \"\(finalScriptPath)\" \"\(self.urlString)\""
+            task.arguments = ["-c", command]
+            
+            // Add environment to find homebrew python
+            var env = ProcessInfo.processInfo.environment
+            env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+            task.environment = env
             
             let outPipe = Pipe()
             let errPipe = Pipe()
