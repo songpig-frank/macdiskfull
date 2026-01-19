@@ -336,25 +336,18 @@ struct SiteSettingsView: View {
                                 .frame(width: 80, alignment: .trailing)
                             Picker("", selection: $site.aiProvider) {
                                 Text("OpenAI").tag("OpenAI")
+                                Text("OpenRouter").tag("OpenRouter")
                                 Text("Anthropic").tag("Anthropic")
-                                Text("Ollama (Local)").tag("Ollama")
+                                Text("Gemini").tag("Gemini")
+                                Text("Ollama").tag("Ollama")
                             }
                             .pickerStyle(SegmentedPickerStyle())
                             .onChange(of: site.aiProvider) { _ in onSave() }
                         }
                         
-                        // Model Selection
-                        HStack {
-                            Text("Model:")
-                                .frame(width: 80, alignment: .trailing)
-                            TextField("Model Name", text: $site.aiModel)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onChange(of: site.aiModel) { _ in onSave() }
-                        }
-                        
                         Divider()
                         
-                        // API Keys based on provider
+                        // Provider-specific configuration
                         if site.aiProvider == "OpenAI" {
                             HStack {
                                 Text("API Key:")
@@ -363,9 +356,46 @@ struct SiteSettingsView: View {
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .onChange(of: site.openAIKey) { _ in onSave() }
                             }
+                            HStack {
+                                Text("Model:")
+                                    .frame(width: 80, alignment: .trailing)
+                                Picker("", selection: $site.aiModel) {
+                                    Text("GPT-4o").tag("gpt-4o")
+                                    Text("GPT-4o Mini").tag("gpt-4o-mini")
+                                    Text("GPT-4 Turbo").tag("gpt-4-turbo")
+                                    Text("GPT-3.5 Turbo").tag("gpt-3.5-turbo")
+                                }
+                                .onChange(of: site.aiModel) { _ in onSave() }
+                            }
                             Text("Get your key at platform.openai.com/api-keys")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
+                                
+                        } else if site.aiProvider == "OpenRouter" {
+                            HStack {
+                                Text("API Key:")
+                                    .frame(width: 80, alignment: .trailing)
+                                SecureField("sk-or-...", text: $site.openAIKey)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: site.openAIKey) { _ in onSave() }
+                            }
+                            HStack {
+                                Text("Model:")
+                                    .frame(width: 80, alignment: .trailing)
+                                Picker("", selection: $site.aiModel) {
+                                    Text("Claude 3.5 Sonnet").tag("anthropic/claude-3.5-sonnet")
+                                    Text("GPT-4o").tag("openai/gpt-4o")
+                                    Text("Gemini Pro 1.5").tag("google/gemini-pro-1.5")
+                                    Text("Llama 3.1 405B").tag("meta-llama/llama-3.1-405b-instruct")
+                                    Text("Mixtral 8x22B").tag("mistralai/mixtral-8x22b")
+                                    Text("DeepSeek V3").tag("deepseek/deepseek-chat")
+                                }
+                                .onChange(of: site.aiModel) { _ in onSave() }
+                            }
+                            Text("OpenRouter gives access to 100+ models. Get key at openrouter.ai")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                
                         } else if site.aiProvider == "Anthropic" {
                             HStack {
                                 Text("API Key:")
@@ -374,9 +404,42 @@ struct SiteSettingsView: View {
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .onChange(of: site.anthropicKey) { _ in onSave() }
                             }
+                            HStack {
+                                Text("Model:")
+                                    .frame(width: 80, alignment: .trailing)
+                                Picker("", selection: $site.aiModel) {
+                                    Text("Claude 3.5 Sonnet").tag("claude-3-5-sonnet-20240620")
+                                    Text("Claude 3 Opus").tag("claude-3-opus-20240229")
+                                    Text("Claude 3 Haiku").tag("claude-3-haiku-20240307")
+                                }
+                                .onChange(of: site.aiModel) { _ in onSave() }
+                            }
                             Text("Get your key at console.anthropic.com")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
+                                
+                        } else if site.aiProvider == "Gemini" {
+                            HStack {
+                                Text("API Key:")
+                                    .frame(width: 80, alignment: .trailing)
+                                SecureField("AIza...", text: $site.geminiKey)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: site.geminiKey) { _ in onSave() }
+                            }
+                            HStack {
+                                Text("Model:")
+                                    .frame(width: 80, alignment: .trailing)
+                                Picker("", selection: $site.aiModel) {
+                                    Text("Gemini 2.0 Flash").tag("gemini-2.0-flash")
+                                    Text("Gemini 1.5 Pro").tag("gemini-1.5-pro")
+                                    Text("Gemini 1.5 Flash").tag("gemini-1.5-flash")
+                                }
+                                .onChange(of: site.aiModel) { _ in onSave() }
+                            }
+                            Text("Get your key at aistudio.google.com/apikey")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                
                         } else if site.aiProvider == "Ollama" {
                             HStack {
                                 Text("URL:")
@@ -385,7 +448,14 @@ struct SiteSettingsView: View {
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .onChange(of: site.ollamaURL) { _ in onSave() }
                             }
-                            Text("Ollama runs locally - no API key needed")
+                            HStack {
+                                Text("Model:")
+                                    .frame(width: 80, alignment: .trailing)
+                                TextField("llama3.2, mistral, etc.", text: $site.aiModel)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: site.aiModel) { _ in onSave() }
+                            }
+                            Text("Ollama runs locally - no API key needed. Run 'ollama serve' first.")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -394,13 +464,19 @@ struct SiteSettingsView: View {
                         HStack {
                             if site.aiProvider == "OpenAI" && !site.openAIKey.isEmpty {
                                 Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                Text("OpenAI configured").font(.caption)
+                                Text("OpenAI configured (\(site.aiModel))").font(.caption)
+                            } else if site.aiProvider == "OpenRouter" && !site.openAIKey.isEmpty {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("OpenRouter configured (\(site.aiModel))").font(.caption)
                             } else if site.aiProvider == "Anthropic" && !site.anthropicKey.isEmpty {
                                 Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                Text("Anthropic configured").font(.caption)
+                                Text("Anthropic configured (\(site.aiModel))").font(.caption)
+                            } else if site.aiProvider == "Gemini" && !site.geminiKey.isEmpty {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("Gemini configured (\(site.aiModel))").font(.caption)
                             } else if site.aiProvider == "Ollama" {
                                 Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                Text("Ollama (local) configured").font(.caption)
+                                Text("Ollama configured (\(site.aiModel))").font(.caption)
                             } else {
                                 Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
                                 Text("Add your API key to enable AI features").font(.caption)
