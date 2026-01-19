@@ -112,10 +112,7 @@ struct AIGeneratorView: View {
                             .font(.caption)
                             .foregroundColor(fetchStatus.contains("Fail") || fetchStatus.contains("hidden") || fetchStatus.contains("Error") ? .orange : .gray)
                         
-                        if !videoTitle.isEmpty {
-                            Button("Fetch Transcript (Python)") { fetchTranscriptPython() }
-                                .font(.caption)
-                        }
+
                         
                         if !videoTitle.isEmpty && fetchStatus.isEmpty {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
@@ -133,7 +130,17 @@ struct AIGeneratorView: View {
                     }
                     
                     VStack(alignment: .leading) {
-                        Text("Transcript / Notes")
+                        HStack {
+                            Text("Transcript / Notes")
+                            Spacer()
+                            if !videoTitle.isEmpty {
+                                Button("Fetch Transcript (Python)") { fetchTranscriptPython() }
+                                    .font(.caption)
+                                    .padding(4)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(4)
+                            }
+                        }
                         TextEditor(text: $transcript)
                             .frame(height: 120)
                             .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.gray.opacity(0.2)))
@@ -163,6 +170,45 @@ struct AIGeneratorView: View {
             .padding()
         }
         .frame(width: 550, height: 850)
+        .overlay(
+            isTestingInfo ?
+            ZStack {
+                Color.black.opacity(0.7).edgesIgnoringSafeArea(.all)
+                VStack(spacing: 20) {
+                    Text("Dev Quick Start")
+                        .font(.title).bold()
+                    Text("Pre-load a known working video to test the AI pipeline?")
+                        .multilineTextAlignment(.center)
+                    HStack {
+                        Button("Cancel") { isTestingInfo = false }
+                            .padding()
+                        Button("Load Sample Data") {
+                            self.urlString = "https://www.youtube.com/watch?v=jfKfPfyJRdk"
+                            self.videoTitle = "lofi hip hop radio - beats to relax/study to"
+                            self.videoChannel = "Lofi Girl"
+                            self.videoDate = "2024-01-01"
+                            self.transcript = "[SAMPLE TRANSCRIPT]\nIn this video, we listen to relaxing beats. The music is chill, lo-fi hip hop. It is great for studying and working. The stream runs 24/7. (This is a sample to prove the AI Writer works)."
+                            isTestingInfo = false
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                }
+                .padding(40)
+                .background(Color(NSColor.windowBackgroundColor))
+                .cornerRadius(12)
+                .shadow(radius: 20)
+            } : nil
+        )
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if self.urlString.isEmpty {
+                    self.isTestingInfo = true
+                }
+            }
+        }
     }
     
     func testConnection() {
