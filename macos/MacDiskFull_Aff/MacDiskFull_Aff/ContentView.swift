@@ -308,29 +308,38 @@ struct SiteSettingsView: View {
                             set: { site.faviconURL = $0.isEmpty ? nil : $0 }
                         ), placeholder: "https://example.com/favicon.ico")
                         
-                        // Preview (if URLs exist)
-                        HStack(spacing: 20) {
-                            if let logoURL = site.logoURL, !logoURL.isEmpty {
-                                VStack {
-                                    AsyncImage(url: URL(string: logoURL)) { image in
-                                        image.resizable().aspectRatio(contentMode: .fit)
-                                    } placeholder: {
-                                        Image(systemName: "photo").foregroundColor(.gray)
+                        // Preview (if URLs exist) - macOS 12+ only
+                        if #available(macOS 12.0, *) {
+                            HStack(spacing: 20) {
+                                if let logoURL = site.logoURL, !logoURL.isEmpty {
+                                    VStack {
+                                        AsyncImage(url: URL(string: logoURL)) { image in
+                                            image.resizable().aspectRatio(contentMode: .fit)
+                                        } placeholder: {
+                                            Image(systemName: "photo").foregroundColor(.gray)
+                                        }
+                                        .frame(width: 80, height: 40)
+                                        Text("Logo").font(.caption2).foregroundColor(.secondary)
                                     }
-                                    .frame(width: 80, height: 40)
-                                    Text("Logo").font(.caption2).foregroundColor(.secondary)
+                                }
+                                if let faviconURL = site.faviconURL, !faviconURL.isEmpty {
+                                    VStack {
+                                        AsyncImage(url: URL(string: faviconURL)) { image in
+                                            image.resizable().aspectRatio(contentMode: .fit)
+                                        } placeholder: {
+                                            Image(systemName: "photo").foregroundColor(.gray)
+                                        }
+                                        .frame(width: 32, height: 32)
+                                        Text("Favicon").font(.caption2).foregroundColor(.secondary)
+                                    }
                                 }
                             }
-                            if let faviconURL = site.faviconURL, !faviconURL.isEmpty {
-                                VStack {
-                                    AsyncImage(url: URL(string: faviconURL)) { image in
-                                        image.resizable().aspectRatio(contentMode: .fit)
-                                    } placeholder: {
-                                        Image(systemName: "photo").foregroundColor(.gray)
-                                    }
-                                    .frame(width: 32, height: 32)
-                                    Text("Favicon").font(.caption2).foregroundColor(.secondary)
-                                }
+                        } else {
+                            // Fallback for macOS 11
+                            if site.logoURL != nil || site.faviconURL != nil {
+                                Text("Preview requires macOS 12+")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
