@@ -22,12 +22,24 @@ struct PolishedResultComparisonView: View {
                 Spacer()
                 Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
-                Button("Apply Changes", action: onApply)
-                    // .buttonStyle(.borderedProminent) - macOS 12+ only
-                    .keyboardShortcut(.defaultAction)
+                if #available(macOS 12.0, *) {
+                    Button("Apply Changes", action: onApply)
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Apply Changes", action: onApply)
+                        .keyboardShortcut(.defaultAction)
+                }
             }
             .padding()
-            .background(Color.gray.opacity(0.1))
+            .background(Group {
+                if #available(macOS 12.0, *) {
+                     // Modern Material Background
+                    Rectangle().fill(.regularMaterial)
+                } else {
+                    Color.gray.opacity(0.1)
+                }
+            })
             
             // Scores
             HStack(spacing: 40) {
