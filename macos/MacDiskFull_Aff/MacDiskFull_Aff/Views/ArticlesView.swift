@@ -20,12 +20,50 @@ struct ArticlesView: View {
         List {
             ForEach(site.articles) { article in
                 Button(action: { editingArticleId = article.id }) {
-                    VStack(alignment: .leading) {
-                        Text(article.title)
-                            .font(.headline)
-                        Text(article.slug)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(article.title)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                
+                                // Status Badge
+                                Text(article.status.rawValue)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(statusColor(article.status).opacity(0.2))
+                                    .foregroundColor(statusColor(article.status))
+                                    .cornerRadius(4)
+                            }
+                            
+                            HStack(spacing: 8) {
+                                Text(article.slug)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                
+                                if let score = article.seoScore {
+                                    Text("SEO: \(score)")
+                                        .font(.caption2)
+                                        .foregroundColor(score >= 80 ? .green : (score >= 50 ? .orange : .red))
+                                }
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        // Delete button
+                        Button(action: {
+                            if let idx = site.articles.firstIndex(where: { $0.id == article.id }) {
+                                site.articles.remove(at: idx)
+                            }
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red.opacity(0.7))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .help("Delete article")
                     }
                     .padding(.vertical, 4)
                 }
@@ -269,6 +307,15 @@ struct ArticlesView: View {
         return res
     }
     
+    /// Returns the appropriate color for article status
+    func statusColor(_ status: ArticleStatus) -> Color {
+        switch status {
+        case .draft: return .orange
+        case .published: return .green
+        case .archived: return .gray
+        }
+    }
+    
     /// Remove common AI chatbot artifacts from imported content
     func stripAIArtifacts(_ content: String) -> String {
         var cleaned = content
@@ -459,6 +506,37 @@ struct ArticleEditorView: View {
                                     TextEditor(text: $article.summary)
                                         .frame(height: 60)
                                         .border(Color.gray.opacity(0.2))
+                                }
+                                
+                                Divider()
+                                
+                                // Status Picker
+                                HStack {
+                                    Text("Status:")
+                                        .frame(width: 60, alignment: .trailing)
+                                    Picker("", selection: $article.status) {
+                                        ForEach(ArticleStatus.allCases, id: \.self) { status in
+                                            Text(status.rawValue).tag(status)
+                                        }
+                                    }
+                                    .pickerStyle(SegmentedPickerStyle())
+                                }
+                                
+                                // Redirect URL (shown for archived articles)
+                                if article.status == .archived {
+                                    HStack {
+                                        Text("Redirect:")
+                                            .frame(width: 60, alignment: .trailing)
+                                        TextField("https://... or /new-slug", text: Binding(
+                                            get: { article.redirectURL ?? "" },
+                                            set: { article.redirectURL = $0.isEmpty ? nil : $0 }
+                                        ))
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+                                    Text("Visitors will be redirected to this URL when viewing the archived article.")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 68)
                                 }
                             }
                             .padding()

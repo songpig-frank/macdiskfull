@@ -43,6 +43,13 @@ enum AffiliateNetwork: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Article Status for CMS workflow
+enum ArticleStatus: String, Codable, CaseIterable {
+    case draft = "Draft"
+    case published = "Published"
+    case archived = "Archived"
+}
+
 /// Blog Article Model
 struct Article: Identifiable, Codable {
     var id: UUID
@@ -54,6 +61,10 @@ struct Article: Identifiable, Codable {
     var publishedDate: Date
     var heroImage: String
     
+    // CMS Status
+    var status: ArticleStatus = .draft
+    var redirectURL: String? = nil // If archived, redirect to this URL
+    
     // SEO & AI Analysis
     var seoScore: Int?         // 0-100
     var seoKeywords: [String]?
@@ -61,7 +72,7 @@ struct Article: Identifiable, Codable {
     var seoRecommendations: [String]?
     var seoConflictResolution: String?
     
-    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil) {
+    init(id: UUID = UUID(), title: String, slug: String, summary: String, contentHTML: String, author: String = "Editorial Team", publishedDate: Date = Date(), heroImage: String = "assets/blog-hero.jpg", status: ArticleStatus = .draft, redirectURL: String? = nil, seoScore: Int? = nil, seoKeywords: [String]? = nil, seoAnalysis: String? = nil, seoRecommendations: [String]? = nil, seoConflictResolution: String? = nil) {
         self.id = id
         self.title = title
         self.slug = slug
@@ -70,6 +81,8 @@ struct Article: Identifiable, Codable {
         self.author = author
         self.publishedDate = publishedDate
         self.heroImage = heroImage
+        self.status = status
+        self.redirectURL = redirectURL
         self.seoScore = seoScore
         self.seoKeywords = seoKeywords
         self.seoAnalysis = seoAnalysis
