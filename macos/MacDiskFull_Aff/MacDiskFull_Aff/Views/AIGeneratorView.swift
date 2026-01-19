@@ -461,7 +461,12 @@ struct AIGeneratorView: View {
 
     func fetchCaptionXML(url: URL) {
         print("Fetching Captions from: \(url.absoluteString)")
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        
+        var request = URLRequest(url: url)
+         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.addValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let content = String(data: data, encoding: .utf8) else { return }
             
             print("RAW CAPTION DATA (\(content.count) chars): \(content.prefix(500))...")
