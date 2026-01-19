@@ -467,41 +467,71 @@ struct AIGeneratorView: View {
         isSearching = true
         searchResults = []
         
-        let shellPath = "/bin/sh"
-        let scriptPath = "/Users/nc/macdiskfull_affiliate/macos/MacDiskFull_Aff/MacDiskFull_Aff/Services/scripts/find_videos.py"
+        // Native Swift Implementation to bypass App Sandbox Constraints
+        guard let encodedQuery = topic.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://www.youtube.com/results?search_query=\(encodedQuery)") else {
+            isSearching = false
+            return
+        }
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: shellPath)
-            let command = "python3 \"\(scriptPath)\" \"\(self.topic)\""
-            task.arguments = ["-c", command]
+        var request = URLRequest(url: url)
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.addValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            defer { DispatchQueue.main.async { self.isSearching = false } }
             
-            var env = ProcessInfo.processInfo.environment
-            env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-            task.environment = env
+            guard let data = data, let html = String(data: data, encoding: .utf8) else { return }
             
-            let outPipe = Pipe()
-            task.standardOutput = outPipe
-            
+            // Regex to find video data in initial data
+            // Look for "videoRenderer":{...} blocks
             do {
-                try task.run()
-                task.waitUntilExit()
+                // Simplified Regex to capture basic info (Robustness tradeoff for Sandbox safety)
+                let videoIDRegex = try NSRegularExpression(pattern: "\"videoId\":\"(.*?)\"", options: [])
+                let titleRegex = try NSRegularExpression(pattern: "\"title\":\\{\"runs\":\\[\\{\"text\":\"(.*?)\"\\}", options: [])
+                // We will just scan and correlate (approximate)
                 
-                let data = outPipe.fileHandleForReading.readDataToEndOfFile()
-                if let jsonStr = String(data: data, encoding: .utf8),
-                   let jsonData = jsonStr.data(using: .utf8) {
-                    let candidates = try? JSONDecoder().decode([VideoCandidate].self, from: jsonData)
-                    DispatchQueue.main.async {
-                        self.isSearching = false
-                        self.searchResults = candidates ?? []
+                // Better approach: Split by videoRenderer
+                let components = html.components(separatedBy: "videoRenderer\":{\"videoId\":\"")
+                
+                var candidates: [VideoCandidate] = []
+                
+                for (index, component) in components.enumerated() {
+                    if index == 0 { continue } // Skip header
+                    
+                    let vidID = String(component.prefix(11))
+                    
+                    // Extract Title
+                    var title = "Unknown Title"
+                    if let titleMatch = component.range(of: "\"title\":{\"runs\":[{\"text\":\"") {
+                        let afterTitle = String(component[titleMatch.upperBound...])
+                        if let endTitle = afterTitle.range(of: "\"}") {
+                            title = String(afterTitle[..<endTitle.lowerBound])
+                        }
                     }
-                } else {
-                     DispatchQueue.main.async { self.isSearching = false }
+                    
+                    // Filter Shorts/Ads if possible (Usually ID length is 11)
+                    if vidID.count == 11 {
+                        candidates.append(VideoCandidate(
+                            id: vidID,
+                            title: title,
+                            channel: "YouTube Source", // Harder to parse simply
+                            published: "Recent",
+                            url: "https://www.youtube.com/watch?v=\(vidID)",
+                            score: 1.0 // Placeholder
+                        ))
+                    }
+                    
+                    if candidates.count >= 10 { break }
+                }
+                
+                DispatchQueue.main.async {
+                    self.searchResults = candidates
                 }
             } catch {
-                DispatchQueue.main.async { self.isSearching = false }
+                print("Regex Error")
             }
-        }
+        }.resume()
     }
     
     func selectVideo(_ video: VideoCandidate) {

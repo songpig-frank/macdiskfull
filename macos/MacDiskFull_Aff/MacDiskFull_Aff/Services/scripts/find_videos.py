@@ -18,7 +18,7 @@ def check_transcript_exists(video_id):
 def parse_views(view_text):
     # "1.2M views", "500K views", "10 views"
     if not view_text: return 0
-    t = view_text.lower().replace(" views", "").replace(" view", "")
+    t = view_text.lower().replace(" views", "").replace(" view", "").replace(",", "")
     multiplier = 1
     if "k" in t:
         multiplier = 1000
